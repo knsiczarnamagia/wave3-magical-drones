@@ -25,6 +25,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+CycleGAN/maps_aerial_dataset/
+CycleGAN/gen_disc_loss.png
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
