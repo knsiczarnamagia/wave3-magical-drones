@@ -12,12 +12,11 @@ class MapDataset(Dataset):
         self.map_images = os.listdir(root_map)
         self.aerial_images = os.listdir(root_aerial)
 
-        self.length_dataset = max(len(self.map_images), len(self.aerial_images)) 
         self.map_len = len(self.map_images)
         self.aerial_len = len(self.aerial_images)
 
     def __len__(self):
-        return self.length_dataset
+        return max(self.map_len, self.aerial_len) 
 
     def __getitem__(self, index):
         map_img = self.map_images[index % self.map_len]
