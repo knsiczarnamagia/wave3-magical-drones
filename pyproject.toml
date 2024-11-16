@@ -2,7 +2,7 @@
 name = "magical-drones"
 version = "0.1.0"
 description = ""
-authors = ["knsiczarnamagia <czarnamagiaknsi@gmail.com>"]
+authors = ["Czarna magia <czarnamagiaknsi@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
