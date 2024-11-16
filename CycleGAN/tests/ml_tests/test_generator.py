@@ -1,5 +1,9 @@
-from generator import Generator
 import torch
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
+
+from generator import Generator
 
 def test_generator():
     img_channels = 3

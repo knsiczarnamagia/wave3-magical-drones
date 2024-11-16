@@ -3,7 +3,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-TRAIN_DIR = "data/maps_aerial_dataset/"
+TRAIN_DIR = "maps_aerial_dataset/"
 BATCH_SIZE = 1
 LEARNING_RATE = 2e-4
 LAMBDA_IDENTITY = 0.0
