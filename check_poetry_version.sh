@@ -1,5 +1,7 @@
 #!/bin/bash
 
+git fetch origin main
+
 base_version=$(git show origin/main:pyproject.toml | grep '^version = ' | cut -d '"' -f2)
 branch_version=$(grep '^version = ' pyproject.toml | cut -d '"' -f2)
 
