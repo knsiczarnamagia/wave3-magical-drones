@@ -14,7 +14,9 @@ import config
 import sys
 from tqdm import tqdm
 
-config.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if config.DEVICE == 'cpu': use_amp = False
+else:
+  use_amp = True 
 
 def train_function(
           Discriminator_Map,
@@ -26,8 +28,8 @@ def train_function(
           optim_generator,
           L1_loss,
           MSE_loss,
-          # generator_scaler,
-          # discriminator_scaler,
+          generator_scaler,
+          discriminator_scaler,
           epoch,
       ):
     loop = tqdm(dataloader, leave=True)
@@ -37,34 +39,7 @@ def train_function(
       aerial_photo = aerial_photo.to(config.DEVICE)
 
       # Discriminators training
-      if config.DEVICE == "cuda":
-        with torch.cuda.amp.autocast():
-          # Aerial discriminator train
-          aerial_fake = Generator_Aerial(map)
-
-          disc_aerial_real = Discriminator_Aerial(aerial_photo)
-          disc_aerial_fake = Discriminator_Aerial(aerial_fake.detach())
-
-          disc_aerial_real_loss = MSE_loss(disc_aerial_real, torch.ones_like(disc_aerial_real))
-          disc_aerial_fake_loss = MSE_loss(disc_aerial_fake, torch.zeros_like(disc_aerial_fake))
-
-          disc_aerial_loss = disc_aerial_real_loss + disc_aerial_fake_loss
-
-          # Map discriminator train
-          map_fake = Generator_Map(aerial_photo)
-
-          disc_map_real = Discriminator_Map(map)
-          disc_map_fake = Discriminator_Map(map_fake.detach())
-
-          disc_map_real_loss = MSE_loss(disc_map_real, torch.ones_like(disc_map_real))
-          disc_map_fake_loss = MSE_loss(disc_map_fake, torch.zeros_like(disc_map_fake))
-
-          disc_map_loss = disc_map_real_loss + disc_map_fake_loss
-
-          # Put loss together
-          Discriminator_loss = (disc_aerial_loss + disc_map_loss)/2
-          
-      else:
+      with torch.autocast(device_type=config.DEVICE, dtype=torch.float16, enabled=use_amp):
         # Aerial discriminator train
         aerial_fake = Generator_Aerial(map)
 
@@ -89,67 +64,41 @@ def train_function(
 
         # Put loss together
         Discriminator_loss = (disc_aerial_loss + disc_map_loss)/2
+          
 
       optim_discriminator.zero_grad()
-      # discriminator_scaler.scale(Discriminator_loss).backward()
-      # discriminator_scaler.step(optim_discriminator)
-      # discriminator_scaler.update()
-      Discriminator_loss.backward()
-      optim_discriminator.step()
+      discriminator_scaler.scale(Discriminator_loss).backward()
+      discriminator_scaler.step(optim_discriminator)
+      discriminator_scaler.update()
 
       # Generators training
-      if config.DEVICE == "cuda":
-        with torch.cuda.amp.autocast():
-          # Adversarial loss for generators
-          disc_aerial_fake = Discriminator_Aerial(aerial_fake)
-          disc_map_fake = Discriminator_Map(map_fake)
-
-          Generator_loss_aerial = MSE_loss(disc_aerial_fake, torch.ones_like(disc_aerial_fake))
-          Generator_loss_map = MSE_loss(disc_map_fake, torch.ones_like(disc_map_fake))
-
-          #Cycle loss
-          cycle_map = Generator_Map(aerial_fake)
-          cycle_aerial = Generator_Aerial(map_fake)
-
-          cycle_map_loss = L1_loss(map, cycle_map)
-          cycle_aerial_loss = L1_loss(aerial_photo, cycle_aerial)
-
-          # Put loss together
-          Generator_loss = (
-              Generator_loss_map
-              + Generator_loss_aerial
-              + cycle_map_loss * config.LAMBDA_CYCLE
-              + cycle_aerial_loss * config.LAMBDA_CYCLE
-          )
-      else:
+      with torch.autocast(device_type=config.DEVICE, dtype=torch.float16, enabled=use_amp):
         # Adversarial loss for generators
-          disc_aerial_fake = Discriminator_Aerial(aerial_fake)
-          disc_map_fake = Discriminator_Map(map_fake)
+        disc_aerial_fake = Discriminator_Aerial(aerial_fake)
+        disc_map_fake = Discriminator_Map(map_fake)
 
-          Generator_loss_aerial = MSE_loss(disc_aerial_fake, torch.ones_like(disc_aerial_fake))
-          Generator_loss_map = MSE_loss(disc_map_fake, torch.ones_like(disc_map_fake))
+        Generator_loss_aerial = MSE_loss(disc_aerial_fake, torch.ones_like(disc_aerial_fake))
+        Generator_loss_map = MSE_loss(disc_map_fake, torch.ones_like(disc_map_fake))
 
-          #Cycle loss
-          cycle_map = Generator_Map(aerial_fake)
-          cycle_aerial = Generator_Aerial(map_fake)
+        #Cycle loss
+        cycle_map = Generator_Map(aerial_fake)
+        cycle_aerial = Generator_Aerial(map_fake)
 
-          cycle_map_loss = L1_loss(map, cycle_map)
-          cycle_aerial_loss = L1_loss(aerial_photo, cycle_aerial)
+        cycle_map_loss = L1_loss(map, cycle_map)
+        cycle_aerial_loss = L1_loss(aerial_photo, cycle_aerial)
 
-          # Put loss together
-          Generator_loss = (
-              Generator_loss_map
-              + Generator_loss_aerial
-              + cycle_map_loss * config.LAMBDA_CYCLE
-              + cycle_aerial_loss * config.LAMBDA_CYCLE
-          )
+        # Put loss together
+        Generator_loss = (
+            Generator_loss_map
+            + Generator_loss_aerial
+            + cycle_map_loss * config.LAMBDA_CYCLE
+            + cycle_aerial_loss * config.LAMBDA_CYCLE
+        )
 
       optim_generator.zero_grad()
-      # generator_scaler.scale(Generator_loss).backward()
-      # generator_scaler.step(optim_generator)
-      # generator_scaler.update()
-      Generator_loss.backward()
-      optim_generator.step()
+      generator_scaler.scale(Generator_loss).backward()
+      generator_scaler.step(optim_generator)
+      generator_scaler.update()
       
 
     print(f"Epoch {epoch} | Generator loss: {Generator_loss} | Discriminator loss: {Discriminator_loss}")
@@ -216,8 +165,8 @@ if __name__ == "__main__":
   )
 
   # Scalers initialization
-  # generator_scaler = torch.cuda.amp.GradScaler("cuda")
-  # discriminator_scaler = torch.cuda.amp.GradScaler("cuda")
+  generator_scaler =  torch.amp.GradScaler(enabled=use_amp)
+  discriminator_scaler =  torch.amp.GradScaler(enabled=use_amp)
 
   # Train loop
   for epoch in range(config.NUM_EPOCHS):
@@ -231,8 +180,8 @@ if __name__ == "__main__":
         optim_generator,
         L1_loss,
         MSE_loss,
-        # generator_scaler,
-        # discriminator_scaler,
+        generator_scaler,
+        discriminator_scaler,
         epoch,
     )
 
