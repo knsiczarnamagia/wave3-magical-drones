@@ -13,6 +13,8 @@ tqdm = "^4.67.0"
 torch = "^2.5.1"
 torchvision = "^0.20.1"
 albumentations = "^1.4.21"
+pathlib = "^1.0.1"
+requests = "^2.32.3"
 
 
 [build-system]

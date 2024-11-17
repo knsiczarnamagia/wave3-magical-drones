@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-
 from torchvision.utils import save_image
 
 from discriminator import Discriminator
@@ -11,6 +10,11 @@ from dataset import MapDataset
 from utils import save_checkpoint, load_checkpoint
 import config
 
+import pathlib
+from pathlib import Path
+import os
+import zipfile
+import shutil
 import sys
 from tqdm import tqdm
 
@@ -103,6 +107,8 @@ def train_function(
 
     print(f"Epoch {epoch} | Generator loss: {Generator_loss} | Discriminator loss: {Discriminator_loss}")
     if epoch % 5 == 0:
+      pathlib.Path('saved_images').mkdir(parents=True, exist_ok=True)
+      
       cycle_first = torch.cat((map, aerial_fake * 0.5 + 0.5, cycle_map), dim=2)
       save_image(cycle_first, f"saved_images/cycle_first_{epoch}.png")
 
@@ -112,6 +118,58 @@ def train_function(
 
 
 if __name__ == "__main__":
+  image_path = Path("maps_aerial_dataset")  
+
+  if not image_path.is_dir():
+      print(f"Creating directory: {image_path}")
+      image_path.mkdir(parents=True, exist_ok=True)
+
+  # Kaggle dataset details
+  data_path = Path("data/")               
+  kaggle_dataset = "suyashdamle/cyclegan" 
+  zip_file_name = "cyclegan.zip"           
+  kaggle_folder_name = "maps/maps"         
+
+  # Download the dataset from Kaggle using Kaggle API
+  if not (data_path / zip_file_name).exists():  
+      print("Downloading dataset from Kaggle...")
+      os.makedirs(data_path, exist_ok=True)  
+      os.system(f"kaggle datasets download -d {kaggle_dataset} -p {data_path}")
+
+  # Unzip the downloaded file
+  with zipfile.ZipFile(data_path / zip_file_name, "r") as zip_ref:
+      print(f"Unzipping {zip_file_name}...")
+      zip_ref.extractall(data_path)
+
+  print("Extracted files:")
+  for root, dirs, files in os.walk(data_path):
+      print(f"Directory: {root}")
+      for dir_name in dirs:
+          print(f"  Sub-directory: {dir_name}")
+      for file_name in files:
+          print(f"  File: {file_name}")
+
+  # Locate trainA and trainB folders
+  source_path = data_path / kaggle_folder_name  
+  if source_path.exists():
+      for folder in ["trainA", "trainB"]: 
+          source_folder = source_path / folder
+          destination_folder = image_path / folder
+          if source_folder.exists():
+              print(f"Moving {folder} to {destination_folder}...")
+              shutil.move(str(source_folder), str(destination_folder))
+          else:
+              print(f"Folder {folder} not found in {source_path}.")  # Handle missing folders
+  else:
+      print(f"Source folder {kaggle_folder_name} not found after unzipping.")
+
+  # Remove 'data/' directory
+  print("Cleaning up...")
+  if data_path.exists():
+      shutil.rmtree(data_path) 
+
+  print("Dataset is ready!")
+
   # Discriminators initialization
   Discriminator_Map = Discriminator(in_channels=3).to(config.DEVICE)
   Discriminator_Aerial = Discriminator(in_channels=3).to(config.DEVICE)
