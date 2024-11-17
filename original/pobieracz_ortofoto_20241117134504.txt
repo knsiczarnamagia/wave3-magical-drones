@@ -1,0 +1,2 @@
+nazwa_pliku,godlo,aktualnosc,wielkosc_piksela,uklad_wspolrzednych,caly_arkusz_wypelniony_trescia,modul_archiwizacji,zrodlo_danych,kolor,numer_zgloszenia_pracy,aktualnosc_rok
+76733_1122240_N-34-114-C-a-3-3.tif,N-34-114-C-a-3-3,2022-06-05,0.25,PL-1992,TAK,1:5000,Zdj. cyfrowe,RGB,DFT.7201.003.2022,2022
