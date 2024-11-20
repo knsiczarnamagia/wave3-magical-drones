@@ -34,6 +34,7 @@ def train_function(
           MSE_loss,
           generator_scaler,
           discriminator_scaler,
+          loss_info,
           epoch,
       ):
     loop = tqdm(dataloader, leave=True)
@@ -104,6 +105,12 @@ def train_function(
       generator_scaler.step(optim_generator)
       generator_scaler.update()
       
+    loss_info.append(
+       {
+          "Generator loss" : Generator_loss,
+          "Discriminator loss" : Discriminator_loss,
+       }
+    )
 
     print(f"Epoch {epoch} | Generator loss: {Generator_loss} | Discriminator loss: {Discriminator_loss}")
     if epoch % 5 == 0:
@@ -115,60 +122,72 @@ def train_function(
       cycle_second = torch.cat((aerial_photo, map_fake * 0.5 + 0.5, cycle_aerial), dim=2)
       save_image(cycle_second, f"saved_images/cycle_second_{epoch}.png")
 
+def Get_data(image_path,
+             data_path,
+             kaggle_dataset,
+             zip_file_name,
+             kaggle_folder_name):
+    
+    image_path = Path(image_path)  
+    data_path = Path(data_path)
 
+    if not image_path.is_dir():
+        print(f"Creating directory: {image_path}")
+        image_path.mkdir(parents=True, exist_ok=True)
+
+    # Download the dataset from Kaggle using Kaggle API
+    if not (data_path / zip_file_name).exists():  
+        print("Downloading dataset from Kaggle...")
+        os.makedirs(data_path, exist_ok=True)  
+        os.system(f"kaggle datasets download -d {kaggle_dataset} -p {data_path}")
+
+    # Unzip the downloaded file
+    with zipfile.ZipFile(data_path / zip_file_name, "r") as zip_ref:
+        print(f"Unzipping {zip_file_name}...")
+        zip_ref.extractall(data_path)
+
+    print("Extracted files:")
+    for root, dirs, files in os.walk(data_path):
+        print(f"Directory: {root}")
+        for dir_name in dirs:
+            print(f"  Sub-directory: {dir_name}")
+        for file_name in files:
+            print(f"  File: {file_name}")
+
+    # Locate trainA and trainB folders
+    source_path = data_path / kaggle_folder_name  
+    if source_path.exists():
+        for folder in ["trainA", "trainB"]: 
+            source_folder = source_path / folder
+            destination_folder = image_path / folder
+            if source_folder.exists():
+                print(f"Moving {folder} to {destination_folder}...")
+                shutil.move(str(source_folder), str(destination_folder))
+            else:
+                print(f"Folder {folder} not found in {source_path}.")  # Handle missing folders
+    else:
+        print(f"Source folder {kaggle_folder_name} not found after unzipping.")
+
+    # Remove 'data/' directory
+    print("Cleaning up...")
+    if data_path.exists():
+        shutil.rmtree(data_path) 
+
+    print("Dataset is ready!")
 
 if __name__ == "__main__":
-  image_path = Path("maps_aerial_dataset")  
-
-  if not image_path.is_dir():
-      print(f"Creating directory: {image_path}")
-      image_path.mkdir(parents=True, exist_ok=True)
-
-  # Kaggle dataset details
+  
+  image_path = "maps_aerial_dataset"
   data_path = Path("data/")               
   kaggle_dataset = "suyashdamle/cyclegan" 
-  zip_file_name = "cyclegan.zip"           
-  kaggle_folder_name = "maps/maps"         
-
-  # Download the dataset from Kaggle using Kaggle API
-  if not (data_path / zip_file_name).exists():  
-      print("Downloading dataset from Kaggle...")
-      os.makedirs(data_path, exist_ok=True)  
-      os.system(f"kaggle datasets download -d {kaggle_dataset} -p {data_path}")
-
-  # Unzip the downloaded file
-  with zipfile.ZipFile(data_path / zip_file_name, "r") as zip_ref:
-      print(f"Unzipping {zip_file_name}...")
-      zip_ref.extractall(data_path)
-
-  print("Extracted files:")
-  for root, dirs, files in os.walk(data_path):
-      print(f"Directory: {root}")
-      for dir_name in dirs:
-          print(f"  Sub-directory: {dir_name}")
-      for file_name in files:
-          print(f"  File: {file_name}")
-
-  # Locate trainA and trainB folders
-  source_path = data_path / kaggle_folder_name  
-  if source_path.exists():
-      for folder in ["trainA", "trainB"]: 
-          source_folder = source_path / folder
-          destination_folder = image_path / folder
-          if source_folder.exists():
-              print(f"Moving {folder} to {destination_folder}...")
-              shutil.move(str(source_folder), str(destination_folder))
-          else:
-              print(f"Folder {folder} not found in {source_path}.")  # Handle missing folders
-  else:
-      print(f"Source folder {kaggle_folder_name} not found after unzipping.")
-
-  # Remove 'data/' directory
-  print("Cleaning up...")
-  if data_path.exists():
-      shutil.rmtree(data_path) 
-
-  print("Dataset is ready!")
+  zip_file_name = "cyclegan.zip"
+  kaggle_folder_name = "maps/maps"
+  
+  Get_data(image_path, 
+           data_path, 
+           kaggle_dataset, 
+           zip_file_name, 
+           kaggle_folder_name)
 
   # Discriminators initialization
   Discriminator_Map = Discriminator(in_channels=3).to(config.DEVICE)
@@ -194,6 +213,8 @@ if __name__ == "__main__":
   # Loss funtions initialization
   L1_loss = nn.L1Loss()
   MSE_loss = nn.MSELoss()
+
+  loss_info = []
 
   if config.LOAD_MODEL:
     load_checkpoint(
@@ -240,11 +261,27 @@ if __name__ == "__main__":
         MSE_loss,
         generator_scaler,
         discriminator_scaler,
+        loss_info,
         epoch,
     )
+
 
     if config.SAVE_MODEL:
       save_checkpoint(Generator_Map, optim_generator, file_name=config.CHECKPOINT_GEN_M)
       save_checkpoint(Generator_Aerial, optim_generator, file_name=config.CHECKPOINT_GEN_A)
       save_checkpoint(Discriminator_Map, optim_discriminator, file_name=config.CHECKPOINT_CRITIC_M)
       save_checkpoint(Discriminator_Aerial, optim_discriminator, file_name=config.CHECKPOINT_CRITIC_A)
+
+  generator_losses = [info["Generator loss"] for info in loss_info]
+  discriminator_losses = [info["Discriminator loss"] for info in loss_info]
+
+  plt.figure(figsize=(10, 5))
+  plt.plot(generator_losses, label='Generator Loss')
+  plt.plot(discriminator_losses, label='Discriminator Loss')
+  plt.xlabel('Epoch')
+  plt.ylabel('Loss')
+  plt.legend()
+  plt.grid(True)
+  plt.title('Generator and Discriminator Losses')
+  plt.savefig("gen_disc_loss.png")  
+  plt.close()
