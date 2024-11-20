@@ -31,6 +31,8 @@ We investigated deploying and querying a basic model on Hugging Face Model Hub a
 
 Expected web application tech stack: Java, Spring Boot, PostgreSQL, Next.js, Docker, AWS EB, AWS S3.
 
+Any advice from Mr. Dominik regarding model cloud deployment is welcome.
+
 # Roles...
 
 # Your ideas...
