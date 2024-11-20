@@ -14,7 +14,7 @@ Plugin enables to only manually downloading images in small parts (max 7km^2). P
 We can scrape data by doing automatic screenshots of Google Maps localizations (based on list of cities etc.):
     - official Google Maps API is expensive and not designed for downloading map images.
 
-We tested initial model trained on Kaggle dataset on several images from geoporal, but results are poor. We speculate that Kaggle data is highly skewed toward city images and the model is unable to properly convert rural terrains.
+We tested initial model trained on Kaggle dataset on several images from geoporal, but results are poor. We speculate that Kaggle data is highly skewed towards city images and the model is unable to properly convert rural terrains.
 
 Potential of mixing datasets is low (Geoportal, Kaggle and Google Maps images have different styles)
     - Can we pretrian on kaggle datasets and then finetune on Google Maps scraped data? (distinct stages or smooth transition between data distributions).
