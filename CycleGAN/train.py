@@ -7,7 +7,7 @@ from torchvision.utils import save_image
 from discriminator import Discriminator
 from generator import Generator
 from dataset import MapDataset
-from utils import save_checkpoint, load_checkpoint
+from utils import save_checkpoint, load_checkpoint, Loss_visualise
 import config
 
 import pathlib
@@ -265,23 +265,13 @@ if __name__ == "__main__":
         epoch,
     )
 
+    Loss_visualise(
+       loss_info=loss_info, 
+       save_to=""
+    )
 
     if config.SAVE_MODEL:
       save_checkpoint(Generator_Map, optim_generator, file_name=config.CHECKPOINT_GEN_M)
       save_checkpoint(Generator_Aerial, optim_generator, file_name=config.CHECKPOINT_GEN_A)
       save_checkpoint(Discriminator_Map, optim_discriminator, file_name=config.CHECKPOINT_CRITIC_M)
       save_checkpoint(Discriminator_Aerial, optim_discriminator, file_name=config.CHECKPOINT_CRITIC_A)
-
-  generator_losses = [info["Generator loss"] for info in loss_info]
-  discriminator_losses = [info["Discriminator loss"] for info in loss_info]
-
-  plt.figure(figsize=(10, 5))
-  plt.plot(generator_losses, label='Generator Loss')
-  plt.plot(discriminator_losses, label='Discriminator Loss')
-  plt.xlabel('Epoch')
-  plt.ylabel('Loss')
-  plt.legend()
-  plt.grid(True)
-  plt.title('Generator and Discriminator Losses')
-  plt.savefig("gen_disc_loss.png")  
-  plt.close()
