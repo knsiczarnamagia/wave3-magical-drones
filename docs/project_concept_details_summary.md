@@ -7,19 +7,19 @@ We implement a CycleGAN that learns the bidirectional mapping between two domain
 We also considered training on similar [Map Pix2Pix dataset](https://www.kaggle.com/datasets/valeriyl/yandex-maps-for-pix2pixhd)
 
 # Dataset
-Geoportal API: We are exploring additional data sources using the Geoportal API. However, we encountered difficulties with data collection on a large scale through the program initially provided by Mr. Dominik.
+We are trying to create a dataset of aerial images and coresponding maps or sketches.
 
-Plugin enables to only manually downloading images in small parts (max 7km^2). Plugin for QGIS is probably based on Geoportal WPS API. We are aware of Geoportal WMS API, but we don't know how to use it (asking for help).
+We are exploring additional data sources using the Geoportal API. However, we encountered difficulties with data collection on a large scale from QGIS.
 
-We can scrape data by doing automatic screenshots of Google Maps localizations (based on list of cities etc.):
-    - official Google Maps API is expensive and not designed for downloading map images.
+Plugin "Pobieracz danych GUGiK" enables to only manually downloading images in small parts (max 7km^2). Though we found that it is probably based on Geoportal WPS API. We could potentially gather data via this API but we don't know how to use it. Any help (if possible) would be greatly appreciated.
 
-We tested initial model trained on Kaggle dataset on several images from geoporal, but results are poor. We speculate that Kaggle data is highly skewed toward city images and the model is unable to properly convert rural terrains.
+We can scrape data by doing automatic screenshots of Google Maps locations (both map and satellite layer) based on list of cities etc. Official Google Maps API is not designed for downloading map images.
 
-Potential of mixing datasets is low (geoportal, kaggle and google map images have different styles)
-    - Can we pretrian on kaggle datasets and then finetune on Google Maps scraped data? (distinct stages or smooth transition between data distributions).
+We tested initial model trained on Kaggle dataset on several images from Geoportal, but results are poor. We speculate that Kaggle data is highly skewed toward city images and the model is unable to properly convert rural terrains.
 
-We are open to receive any data from the company.
+We were thinking on mixing data - pre-train on kaggle datasets and then fine-tune on Google Maps scraped data but since the map images from kaggle and Google differ we do not know if it could work.
+
+We are open to receive some dataset from the company's data.
 
 # Training
 We set up Lightning AI Studio in our local environment, and an exemplary dataset was loaded to evaluate its capabilities. A basic pipeline was implemented and tested on sample data to assess its performance. A basic GAN was trained to generate MNIST digits in VS Code, and the free GPU models offered by the platform proved sufficient for our needs, eliminating the need for an upgraded plan.
@@ -32,6 +32,15 @@ We investigated deploying and querying a basic model on Hugging Face Model Hub a
 Expected web application tech stack: Java, Spring Boot, PostgreSQL, Next.js, Docker, AWS EB, AWS S3.
 
 Any advice from Mr. Dominik regarding model cloud deployment is welcome.
+
+# Research
+
+In WandB, we currently display the results of the CycleGAN model training allowing for a preliminary evaluation of generator and discriminator losses. The loss graphs provide insight into model stabilization.
+
+Future plans: 
+- Long-term Metric Tracking: WandB will enable continuous monitoring of progress across future training and testing sessions on new datasets.
+- Result Comparison: Different versions of the model, hyperparameters, and datasets can be compared to determine the optimal configuration.
+- Automated Reporting: Results logged in WandB can be used to generate reports and visualize progress in real time.
 
 # Roles...
 
