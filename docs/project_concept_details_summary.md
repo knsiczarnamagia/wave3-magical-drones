@@ -19,7 +19,7 @@ We tested initial model trained on Kaggle dataset on several images from Geoport
 
 We were thinking on mixing data - pre-train on kaggle datasets and then fine-tune on Google Maps scraped data but since the map images from kaggle and Google differ we do not know if it could work.
 
-We are open to receive some dataset from the company's data.
+We are open to receive some dataset from Mr. Dominik’s data.
 
 # Training
 We set up Lightning AI Studio in our local environment, and an exemplary dataset was loaded to evaluate its capabilities. A basic pipeline was implemented and tested on sample data to assess its performance. A basic GAN was trained to generate MNIST digits in VS Code, and the free GPU models offered by the platform proved sufficient for our needs, eliminating the need for an upgraded plan.
@@ -41,7 +41,3 @@ Future plans:
 - Long-term Metric Tracking: WandB will enable continuous monitoring of progress across future training and testing sessions on new datasets.
 - Result Comparison: Different versions of the model, hyperparameters, and datasets can be compared to determine the optimal configuration.
 - Automated Reporting: Results logged in WandB can be used to generate reports and visualize progress in real time.
-
-# Roles...
-
-# Your ideas...
