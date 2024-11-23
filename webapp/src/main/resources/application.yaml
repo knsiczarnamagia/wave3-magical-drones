@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: magical-drones-webapp
+  main:
+    banner-mode: off
+
+  profiles:
+    active: prod

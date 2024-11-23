@@ -7,7 +7,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 class MagicalDronesAppTest {
 
 	@Test
-	void contextLoads() {
+	void contextShouldLoad() {
 	}
-
 }
