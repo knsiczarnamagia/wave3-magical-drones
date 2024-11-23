@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>ImapLiteApi - example</title>
+        <script src="http://mapy.geoportal.gov.pl/iMapLite/js/imapLiteApi-core.js" type="text/javascript" charset="utf-8"></script>
+        <script type="text/javascript" charset="utf-8">
+                function initMap() {
+                       ILITEAPI.init({
+                    "divId" : "iapi",
+                    "width" : 800,
+                    "height" : 600,
+                    "activeGpMapId" : "gp0",
+                    "activeGpMaps" : ["gp0","gp1"],
+                    "activeGpActions" : ["pan","fullExtent"],
+                    "scale" : 2000
+                });
+            }
+        </script>
+    </head>
+    <body onLoad="initMap()">
+        <div id="iapi"></div>
+    </body>
+</html>
