@@ -12,7 +12,10 @@ import org.springframework.security.core.GrantedAuthority;
 @Getter @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "authority")
+@Table(
+        name = "authority",
+        uniqueConstraints = { @UniqueConstraint(columnNames = "string_value", name = "string_value_unique") }
+)
 public class Authority implements GrantedAuthority {
 
     @Id
@@ -20,7 +23,7 @@ public class Authority implements GrantedAuthority {
     @SequenceGenerator(name = "authorityId", sequenceName = "authority_id_seq", allocationSize = 1)
     private Long id;
 
-    @Column(name = "string_value", nullable = false, unique = true)
+    @Column(name = "string_value", nullable = false)
     private String stringValue;
 
     public Authority(Role role) {

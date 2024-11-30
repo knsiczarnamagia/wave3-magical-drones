@@ -12,6 +12,13 @@ import java.util.Objects;
 @Getter @Setter
 @NoArgsConstructor
 @Entity
+@Table(
+        name = "generation",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "source_image", name = "source_image_unique"),
+                @UniqueConstraint(columnNames = "generated_image", name = "generated_image_unique"),
+        }
+)
 public class Generation {
 
     @Id
@@ -34,14 +41,14 @@ public class Generation {
     /**
      * An id of the source image file.
      */
-    @Column(name = "source_image", unique = true)
-    private Long sourceImage;
+    @Column(name = "source_image_id")
+    private String sourceImage;
 
     /**
      * An id of the target image file.
      */
-    @Column(name = "generated_image", unique = true)
-    private Long generatedImage;
+    @Column(name = "generated_image_id")
+    private String generatedImage;
 
     @ManyToOne
     @JoinColumn(name = "account_id", foreignKey = @ForeignKey(name = "fk_generation_account"))

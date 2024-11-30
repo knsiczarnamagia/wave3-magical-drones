@@ -15,6 +15,13 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @Entity
+@Table(
+        name = "account",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "username", name = "username_unique "),
+                @UniqueConstraint(columnNames = "profile_picture", name = "profile_picture_unique "),
+        }
+)
 public class Account implements UserDetails {
 
     @Getter
@@ -23,7 +30,7 @@ public class Account implements UserDetails {
     @SequenceGenerator(name = "accountId", sequenceName = "account_id_seq", allocationSize = 50)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String username;
 
     @Column(nullable = false)
@@ -48,8 +55,8 @@ public class Account implements UserDetails {
      * An id of the file containing this account's profile picture.
      */
     @Getter
-    @Column(name = "profile_picture", unique = true)
-    private Long profilePicture;
+    @Column(name = "profile_picture_id")
+    private String profilePicture;
 
     @OneToMany(mappedBy = "account", cascade = { CascadeType.ALL }, orphanRemoval = true)
     private List<Generation> generations;

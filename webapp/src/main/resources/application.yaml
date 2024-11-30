@@ -6,3 +6,10 @@ spring:
 
   profiles:
     active: prod
+
+aws:
+  region: us-east-1
+  s3:
+    bucket: magical-drones
+    bucket-test: magical-drones-integration-tests
+
