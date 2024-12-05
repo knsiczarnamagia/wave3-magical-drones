@@ -3,6 +3,11 @@ install:
 
 test:
 	poetry run pytest ./tests -vv
+	@if [ -d "webapp" ]; then \
+		cd webapp && ./mvnw test; \
+	else \
+		echo "Directory 'webapp' does not exist!"; \
+	fi
 
 update:
 	poetry update
