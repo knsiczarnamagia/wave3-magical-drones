@@ -45,7 +45,7 @@ def render_views(output_folder_vectors, output_folder_rasters, image_width=500, 
 
         id = feature.id()
         extent = feature.geometry().boundingBox()
-        # print(f"Renderowanie oczka ID {feature.id()} (Extent: {extent.toString()})")
+        print(f"Renderowanie oczka ID {feature.id()} (Extent: {extent.toString()})")
 
         vector_layers = [layer for layer in layers if layer.type() == QgsMapLayer.VectorLayer and extent.intersects(layer.extent())]
         raster_layers = [layer for layer in layers if layer.type() == QgsMapLayer.RasterLayer and extent.intersects(layer.extent())]
@@ -78,6 +78,6 @@ def render_layer_group(layers, extent, width, height, output_folder, id, layer_t
 
     output_path = os.path.join(output_folder, f"cell_{id}.png")
     image.save(output_path)
-    # print(f"Zapisano obraz {layer_type} dla ID: {id}")
+    print(f"Zapisano obraz {layer_type} dla ID: {id}")
 
 render_views(VECTOR_OUT_DIR, RASTER_OUT_DIR)
