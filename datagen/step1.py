@@ -1,5 +1,4 @@
 import os
-import uuid
 from pathlib import Path
 from qgis.core import (
     QgsProject,
@@ -7,20 +6,20 @@ from qgis.core import (
     QgsVectorLayer,
     QgsFeature,
     QgsField,
-    QgsSpatialIndex
+    QgsSpatialIndex,
 )
 from PyQt5.QtCore import QVariant, Qt
 from PyQt5.QtWidgets import QProgressDialog
 from qgis.utils import iface
 from qgis import processing
 
-ROOT_DIR = Path.home()/Path("Pulpit/drony/")
+ROOT_DIR = Path.home() / Path("Pulpit/drony/")
 STYLES = {
-    "water_": str(ROOT_DIR/Path("styles/water.qml")),
-    "buildings_": str(ROOT_DIR/Path("styles/buildings.qml")),
-    "roads_": str(ROOT_DIR/Path("styles/roads.qml")),
-    "railways_": str(ROOT_DIR/Path("styles/railways.qml")),
-    "landuse_": str(ROOT_DIR/Path("styles/landuse.qml")),
+    "water_": str(ROOT_DIR / Path("styles/water.qml")),
+    "buildings_": str(ROOT_DIR / Path("styles/buildings.qml")),
+    "roads_": str(ROOT_DIR / Path("styles/roads.qml")),
+    "railways_": str(ROOT_DIR / Path("styles/railways.qml")),
+    "landuse_": str(ROOT_DIR / Path("styles/landuse.qml")),
 }
 BUILDINGS_LAYER_NAME = "buildings_"
 GRID_LAYER_NAME = "Siatka"
@@ -30,61 +29,69 @@ def reproject_layers_to_2180():
     """Konwertuje wszystkie warstwy wektorowe z EPSG:4326 do EPSG:2180"""
     project = QgsProject.instance()
     layers = project.mapLayers().values()
-    
+
     # Progress dialog
     vector_layers = [layer for layer in layers if isinstance(layer, QgsVectorLayer)]
     progress = QProgressDialog("Reprojekcja warstw...", "Anuluj", 0, len(vector_layers))
     progress.setWindowModality(Qt.WindowModal)
     progress.show()
-    
+
     current = 0
-    
+
     for layer in vector_layers:
         if progress.wasCanceled():
             break
-            
+
         source_crs = layer.crs()
-        if source_crs.authid() == 'EPSG:4326':
+        if source_crs.authid() == "EPSG:4326":
             new_layer_name = f"{layer.name()}_2180"
-            
+
             params = {
-                'INPUT': layer,
-                'TARGET_CRS': 'EPSG:2180',
-                'OUTPUT': 'memory:' + new_layer_name
+                "INPUT": layer,
+                "TARGET_CRS": "EPSG:2180",
+                "OUTPUT": "memory:" + new_layer_name,
             }
             result = processing.run("native:reprojectlayer", params)
-            
-            new_layer = result['OUTPUT']
+
+            new_layer = result["OUTPUT"]
             project.addMapLayer(new_layer)
             project.removeMapLayer(layer)
-            
+
             print(f"Przekonwertowano warstwę: {new_layer.name()} do EPSG:2180")
-        
+
         current += 1
         progress.setValue(current)
-    
+
     progress.close()
     iface.mapCanvas().refresh()
     print("Zakończono reprojekcję warstw.")
+
 
 def reorder_layers(preferred_order, grid_layer_name):
     """Zmiana kolejności warstw w projekcie"""
     root = QgsProject.instance().layerTreeRoot()
     layers = QgsProject.instance().mapLayers().values()
-    
-    vector_layers = [layer for layer in layers if layer.type() == QgsMapLayer.VectorLayer]
-    raster_layers = [layer for layer in layers if layer.type() == QgsMapLayer.RasterLayer]
-    
+
+    vector_layers = [
+        layer for layer in layers if layer.type() == QgsMapLayer.VectorLayer
+    ]
+    raster_layers = [
+        layer for layer in layers if layer.type() == QgsMapLayer.RasterLayer
+    ]
+
     ordered_layers = []
-    
+
     # Dodawanie warstw w określonej kolejności
     for layer in vector_layers:
         if grid_layer_name.lower() in layer.name().lower():
             ordered_layers.append(layer)
-            
+
     for layer_name in preferred_order:
         for layer in vector_layers:
-            if layer_name.lower() in layer.name().lower() and layer not in ordered_layers:
+            if (
+                layer_name.lower() in layer.name().lower()
+                and layer not in ordered_layers
+            ):
                 ordered_layers.append(layer)
 
     for layer in vector_layers:
@@ -102,10 +109,11 @@ def reorder_layers(preferred_order, grid_layer_name):
             parent.insertChildNode(0, clone)
             parent.removeChildNode(node)
 
+
 def apply_styles(styles):
     """Aplikacja stylów do warstw"""
     layers = QgsProject.instance().mapLayers().values()
-    
+
     for layer in layers:
         layer_name = layer.name().lower()
         for key, style_path in styles.items():
@@ -116,12 +124,15 @@ def apply_styles(styles):
                         layer.triggerRepaint()
                         print(f"Zastosowano styl dla warstwy: {layer_name}")
                     else:
-                        print(f"Nie udało się załadować stylu dla warstwy: {layer_name}")
+                        print(
+                            f"Nie udało się załadować stylu dla warstwy: {layer_name}"
+                        )
                 else:
                     print(f"Nie znaleziono pliku stylu: {style_path}")
-    
+
     iface.mapCanvas().refresh()
     print("Zakończono aplikację stylów.")
+
 
 def get_layer_containing(substr):
     layer = None
@@ -133,6 +144,7 @@ def get_layer_containing(substr):
         raise ValueError(f"Nie znaleziono warstwy zawierającej '{layer}' w nazwie")
     return layer
 
+
 def move_layer_to_top(layer):
     """Przenosi warstwę na samą górę w panelu warstw"""
     root = QgsProject.instance().layerTreeRoot()
@@ -142,6 +154,7 @@ def move_layer_to_top(layer):
         parent = node.parent()
         parent.insertChildNode(0, clone)
         parent.removeChildNode(node)
+
 
 def analyze_grid():
     """Analiza siatki i tworzenie nowej warstwy z oczkami zawierającymi >5% budynków"""
@@ -154,7 +167,9 @@ def analyze_grid():
         building_index.addFeature(feat)
 
     # Utwórz nową warstwę
-    result_layer = QgsVectorLayer("Polygon?crs=" + grid_layer.crs().toWkt(), "grid_above_5_percent", "memory")
+    result_layer = QgsVectorLayer(
+        "Polygon?crs=" + grid_layer.crs().toWkt(), "grid_above_5_percent", "memory"
+    )
     result_layer_provider = result_layer.dataProvider()
 
     # Dodaj pola
@@ -175,35 +190,35 @@ def analyze_grid():
     for grid_feature in grid_layer.getFeatures():
         if progress.wasCanceled():
             break
-            
+
         grid_geom = grid_feature.geometry()
         grid_area = grid_geom.area()
-        
+
         if grid_area == 0:
             continue
-        
+
         # Znajdź potencjalne przecięcia używając spatial index
         intersecting_ids = building_index.intersects(grid_geom.boundingBox())
         building_area_total = 0
-        
+
         # Sprawdź tylko budynki, które mogą się przecinać
         for building_id in intersecting_ids:
             building_feature = buildings_layer.getFeature(building_id)
             building_geom = building_feature.geometry()
-            
+
             if grid_geom.intersects(building_geom):
                 intersection = grid_geom.intersection(building_geom)
                 if not intersection.isEmpty():
                     building_area_total += intersection.area()
-        
+
         building_percent = (building_area_total / grid_area) * 100
-        
+
         if building_percent > 5:
             new_feature = QgsFeature(result_layer.fields())
             new_feature.setGeometry(grid_geom)
             new_feature.setAttributes(grid_feature.attributes() + [building_percent])
             features_to_add.append(new_feature)
-        
+
         current += 1
         progress.setValue(current)
 
@@ -214,7 +229,7 @@ def analyze_grid():
     iface.mapCanvas().refresh()
 
 
-def main():    
+def main():
     preferred_order = [
         "buildings_",
         "roads_",
@@ -223,18 +238,18 @@ def main():
         "water_",
     ]
     reproject_layers_to_2180()
-    
+
     print("Zmiana kolejności warstw...")
     reorder_layers(preferred_order, GRID_LAYER_NAME)
-    
+
     print("Aplikowanie stylów...")
     apply_styles(STYLES)
-    
+
     iface.mapCanvas().refresh()
-    
+
     print("Rozpoczynanie analizy siatki...")
     analyze_grid()
-    
+
     print("Proces zakończony pomyślnie!")
 
 
