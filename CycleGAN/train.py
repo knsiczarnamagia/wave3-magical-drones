@@ -34,7 +34,6 @@ def train_function(
           MSE_loss,
           generator_scaler,
           discriminator_scaler,
-          loss_info,
           epoch,
       ):
     loop = tqdm(dataloader, leave=True)
@@ -104,13 +103,6 @@ def train_function(
       generator_scaler.scale(Generator_loss).backward()
       generator_scaler.step(optim_generator)
       generator_scaler.update()
-      
-    loss_info.append(
-       {
-          "Generator loss" : Generator_loss,
-          "Discriminator loss" : Discriminator_loss,
-       }
-    )
 
     print(f"Epoch {epoch} | Generator loss: {Generator_loss} | Discriminator loss: {Discriminator_loss}")
     if epoch % 5 == 0:
@@ -261,13 +253,7 @@ if __name__ == "__main__":
         MSE_loss,
         generator_scaler,
         discriminator_scaler,
-        loss_info,
         epoch,
-    )
-
-    Loss_visualise(
-       loss_info=loss_info, 
-       save_to=""
     )
 
     if config.SAVE_MODEL:
