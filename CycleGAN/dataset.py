@@ -3,6 +3,7 @@ from PIL import Image
 import numpy as np
 import os
 
+
 class MapDataset(Dataset):
     def __init__(self, root_map, root_aerial, transform=None):
         self.root_map = root_map
@@ -16,7 +17,7 @@ class MapDataset(Dataset):
         self.aerial_len = len(self.aerial_images)
 
     def __len__(self):
-        return max(self.map_len, self.aerial_len) 
+        return max(self.map_len, self.aerial_len)
 
     def __getitem__(self, index):
         map_img = self.map_images[index % self.map_len]
