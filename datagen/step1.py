@@ -7,11 +7,9 @@ from qgis.core import (
     QgsVectorLayer,
     QgsFeature,
     QgsField,
-    QgsSpatialIndex,
-    # QgsCoordinateReferenceSystem
+    QgsSpatialIndex
 )
-# from PyQt5.QtGui import QImage, QPainter
-from PyQt5.QtCore import QSize, QVariant, Qt
+from PyQt5.QtCore import QVariant, Qt
 from PyQt5.QtWidgets import QProgressDialog
 from qgis.utils import iface
 from qgis import processing
@@ -47,24 +45,17 @@ def reproject_layers_to_2180():
             
         source_crs = layer.crs()
         if source_crs.authid() == 'EPSG:4326':
-            # Utworzenie nazwy dla nowej warstwy
             new_layer_name = f"{layer.name()}_2180"
             
-            # Utworzenie parametrów dla reprojekcji
             params = {
                 'INPUT': layer,
                 'TARGET_CRS': 'EPSG:2180',
                 'OUTPUT': 'memory:' + new_layer_name
             }
-            
-            # Wykonanie reprojekcji
             result = processing.run("native:reprojectlayer", params)
             
-            # Dodanie nowej warstwy do projektu
             new_layer = result['OUTPUT']
             project.addMapLayer(new_layer)
-            
-            # Usunięcie starej warstwy
             project.removeMapLayer(layer)
             
             print(f"Przekonwertowano warstwę: {new_layer.name()} do EPSG:2180")
@@ -154,7 +145,6 @@ def move_layer_to_top(layer):
 
 def analyze_grid():
     """Analiza siatki i tworzenie nowej warstwy z oczkami zawierającymi >5% budynków"""
-    # Wczytaj warstwy
     buildings_layer = get_layer_containing(BUILDINGS_LAYER_NAME)
     grid_layer = QgsProject.instance().mapLayersByName("Siatka")[0]
 
@@ -182,7 +172,6 @@ def analyze_grid():
     features_to_add = []
     current = 0
 
-    # Główna pętla
     for grid_feature in grid_layer.getFeatures():
         if progress.wasCanceled():
             break
@@ -215,20 +204,12 @@ def analyze_grid():
             new_feature.setAttributes(grid_feature.attributes() + [building_percent])
             features_to_add.append(new_feature)
         
-        # Aktualizuj progress bar
         current += 1
         progress.setValue(current)
 
-    # Dodaj wszystkie features za jednym razem
     result_layer_provider.addFeatures(features_to_add)
-
-    # Zamknij progress dialog
     progress.close()
-
-    # Dodaj warstwę do projektu
     QgsProject.instance().addMapLayer(result_layer)
-
-    # Odśwież widok mapy
     move_layer_to_top(result_layer)
     iface.mapCanvas().refresh()
 
@@ -241,21 +222,16 @@ def main():
         "landuse_",
         "water_",
     ]
-    # Zmień układ współrzędnych
     reproject_layers_to_2180()
     
-    # Zmiana kolejności warstw
     print("Zmiana kolejności warstw...")
     reorder_layers(preferred_order, GRID_LAYER_NAME)
     
-    # Aplikacja stylów
     print("Aplikowanie stylów...")
     apply_styles(STYLES)
     
-    # Odświeżenie widoku
     iface.mapCanvas().refresh()
     
-    # Analiza siatki
     print("Rozpoczynanie analizy siatki...")
     analyze_grid()
     
