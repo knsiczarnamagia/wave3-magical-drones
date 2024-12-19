@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "magical-drones"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["Czarna magia <czarnamagiaknsi@gmail.com>"]
 readme = "README.md"
