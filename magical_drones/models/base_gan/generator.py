@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+<<<<<<< HEAD
 from torch import nn, Tensor
 
 
@@ -17,3 +18,14 @@ class BaseGenerator(ABC, nn.Module):
     @abstractmethod
     def forward(self, z: Tensor) -> Tensor:
         pass
+=======
+from pytorch_lightning import LightningModule
+
+
+
+
+class BaseGenerator(ABC, LightningModule):
+    def __init__(self, input_dim: int):
+        super().__init__()
+        self.input_dim = input_dim
+>>>>>>> 3cf493b (First steps of Lightning structure)
