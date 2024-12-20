@@ -8,31 +8,21 @@ from magical_drones.models.cycle_gan.generator import Generator
 
 class CycleGAN(BaseGAN):
     def __init__(
-        self,
-        channels: int = 3,
-        width: int = 224,
-        height: int = 224,
-        latent_dim: int = 100,
-        lr: float = 0.0002,
-        b1: float = 0.5,
-        b2: float = 0.999,
-        **kwargs,
-    ):
-        super().__init__(
-            channels=channels,
-            width=width,
-            height=height,
-            latent_dim=latent_dim,
-            lr=lr,
-            b1=b1,
-            b2=b2,
+            self,
+            channels,
+            width,
+            height,
+            latent_dim: int = 100,
+            lr: float = 0.0002,
+            b1: float = 0.5,
+            b2: float = 0.999,
+            batch_size: int = 32,
             **kwargs,
-        )
-        self.generated_imgs = None
-        self.save_hyperparameters()
-        self.automatic_optimization = False
-        self.generator = Generator()
-        self.discriminator = Discriminator()  # TODO: Implement
+    ):
+        super().__init__()
+        data_shape = (channels, width, height)
+        self.generator = Generator(latent_dim=self.hparams.latent_dim, img_shape=data_shape)
+        self.discriminator = Discriminator(img_shape=data_shape)
 
     def forward(self, z: Tensor) -> Tensor:
         return self.generator(z)
@@ -98,3 +88,6 @@ class CycleGAN(BaseGAN):
 
     def on_validation_epoch_end(self):
         pass
+
+    def adversarial_loss(self, y_hat, y):
+        return F.binary_cross_entropy(y_hat, y)
