@@ -15,4 +15,22 @@ class BaseGAN(ABC, LightningModule):
     def forward(self, z: Tensor) -> Tensor:
         pass
 
+    @abstractmethod
+    def training_step(self, batch: Tensor):
+        pass
+
+    @abstractmethod
+    def validation_step(self, batch: Tensor, batch_idx: int):
+        pass
+
+    @abstractmethod
+    def configure_optimizers(self):
+        pass
+
+    @abstractmethod
+    def on_validation_epoch_end(self):
+        pass
+
+
+
 
