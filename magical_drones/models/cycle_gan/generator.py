@@ -115,10 +115,3 @@ class ResidualBlock(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return x + self.block(x)
-=======
-from .models.gan import BaseGenerator
-
-
-class Generator(BaseGenerator):
-    pass
->>>>>>> 3cf493b (First steps of Lightning structure)
