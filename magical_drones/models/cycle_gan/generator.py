@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 from torch import tanh
 from torch import Tensor
 import torch.nn as nn
@@ -82,7 +81,6 @@ class Generator(BaseGenerator):
 
     def forward(self, noise: Tensor) -> Tensor:
         return tanh(self.model(noise))
-
 
 
 

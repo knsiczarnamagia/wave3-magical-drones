@@ -11,6 +11,7 @@ class BaseGAN(ABC, LightningModule):
         channels: int = 3,
         width: int = 224,
         height: int = 224,
+
         latent_dim: int = 100,
         lr: float = 0.0002,
         b1: float = 0.5,
@@ -25,16 +26,13 @@ class BaseGAN(ABC, LightningModule):
     def adversarial_loss(self, y_hat: Tensor, y: Tensor) -> Tensor:
         return F.binary_cross_entropy(y_hat, y)
 
+    def adversarial_loss(self, y_hat: Tensor, y: Tensor) -> Tensor:
+        return F.binary_cross_entropy(y_hat, y)
+
     @abstractmethod
     def forward(self, z: Tensor) -> Tensor:
         pass
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    @abstractmethod
-    def training_step(self, batch: Tensor):
-        pass
-=======
     @abstractmethod
     def training_step(self, batch: Tensor):
         pass
@@ -50,22 +48,3 @@ class BaseGAN(ABC, LightningModule):
     @abstractmethod
     def on_validation_epoch_end(self):
         pass
-
-
-
->>>>>>> 5931488 (GAN Base class)
-
-    @abstractmethod
-    def validation_step(self, batch: Tensor, batch_idx: int):
-        pass
-
-    @abstractmethod
-    def configure_optimizers(self):
-        pass
-
-    @abstractmethod
-    def on_validation_epoch_end(self):
-        pass
-=======
-
->>>>>>> 3cf493b (First steps of Lightning structure)
