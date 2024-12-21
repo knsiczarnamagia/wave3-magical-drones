@@ -6,9 +6,7 @@ from magical_drones.models import BaseGenerator
 
 
 class Generator(BaseGenerator):
-    def __init__(
-            self, input_channels: int = 3, num_features: int = 64, num_residuals: int = 2
-    ):
+    def __init__(self):
         super().__init__()
         self.model = self._construct_model()
 
@@ -28,7 +26,11 @@ class Generator(BaseGenerator):
         down_blocks = nn.ModuleList(
             [
                 ConvBlock(
-                    self.num_features, self.num_features * 2, kernel_size=3, stride=2, padding=1
+                    self.num_features,
+                    self.num_features * 2,
+                    kernel_size=3,
+                    stride=2,
+                    padding=1,
                 ),
                 ConvBlock(
                     self.num_features * 2,
@@ -77,11 +79,7 @@ class Generator(BaseGenerator):
         )
 
         model = nn.Sequential(
-            initial_layer,
-            down_blocks,
-            residual_blocks,
-            up_blocks,
-            last_block
+            initial_layer, down_blocks, residual_blocks, up_blocks, last_block
         )
         return model
 
@@ -101,7 +99,7 @@ class Generator(BaseGenerator):
 
 class ConvBlock(nn.Module):
     def __init__(
-            self, in_channels, out_channels, down=True, use_activation=True, **kwargs
+        self, in_channels, out_channels, down=True, use_activation=True, **kwargs
     ):
         super().__init__()
         self.conv = nn.Sequential(

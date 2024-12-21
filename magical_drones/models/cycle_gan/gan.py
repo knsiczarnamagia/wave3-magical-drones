@@ -22,10 +22,7 @@ class CycleGAN(BaseGAN):
         super().__init__()
         self.save_hyperparameters()
         self.automatic_optimization = False
-        data_shape = (channels, width, height)
-        self.generator = Generator(
-            num_features=self.hparams.latent_dim, input_channels=3
-        )
+        self.generator = Generator()
         self.discriminator = Discriminator()  # TODO: Implement
 
     def forward(self, z: Tensor) -> Tensor:
@@ -89,10 +86,3 @@ class CycleGAN(BaseGAN):
         opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(b1, b2))
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
         return [opt_g, opt_d], []
-
-    def on_validation_epoch_end(self):
-        z = self.validation_z.type_as(self.generator.model[0].weight)
-
-        # sample_images = self(z)
-        # grid = torchvision.utils.make_grid(sample_imgs)
-        # self.logger.experiment.add_image("validation/generated_images", grid, self.current_epoch)
