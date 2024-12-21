@@ -2,6 +2,7 @@ from pytorch_lightning import LightningModule
 
 from abc import ABC, abstractmethod
 from torch import Tensor
+from torch.functional import F
 
 
 class BaseGAN(ABC, LightningModule):
