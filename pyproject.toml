@@ -11,6 +11,7 @@ pytest = "^8.3.3"
 ruff = "^0.7.3"
 torch = "2.2.2"
 pytorch-lightning = "^2.5.0"
+torchvision = "^0.17"
 
 
 [build-system]
