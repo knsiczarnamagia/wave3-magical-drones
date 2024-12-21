@@ -1,10 +1,14 @@
-from .models.gan import BaseGenerator
 from torch import tanh
 from torch import Tensor
+import torch.nn as nn
+
+from magical_drones.models import BaseGenerator
 
 
 class Generator(BaseGenerator):
-    def __init__(self, input_channels: int = 3, num_features: int = 64, num_residuals: int = 2):
+    def __init__(
+        self, input_channels: int = 3, num_features: int = 64, num_residuals: int = 2
+    ):
         super().__init__()
         # self.initial =
         # self.down_blocks =
@@ -27,8 +31,6 @@ class Generator(BaseGenerator):
         return tanh(self.last_block(x))
 
 
-import torch
-import torch.nn as nn
 
 
 class ConvBlock(nn.Module):
