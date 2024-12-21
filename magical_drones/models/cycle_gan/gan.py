@@ -22,10 +22,7 @@ class CycleGAN(BaseGAN):
         super().__init__()
         self.save_hyperparameters()
         self.automatic_optimization = False
-        data_shape = (channels, width, height)
-        self.generator = Generator(
-            num_features=self.hparams.latent_dim, input_channels=3
-        )
+        self.generator = Generator()
         self.discriminator = Discriminator()  # TODO: Implement
 
     def forward(self, z: Tensor) -> Tensor:
