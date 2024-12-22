@@ -1,209 +1,110 @@
-import os
-from pathlib import Path
-from qgis.core import (
-    QgsProject,
-    QgsMapLayer,
-    QgsVectorLayer,
-    QgsFeature,
-    QgsField,
-    QgsSpatialIndex,
-)
-from PyQt5.QtCore import QVariant, Qt
+from utils import Config, LayerManager, StyleManager
+from qgis import processing
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QProgressDialog
 from qgis.utils import iface
-from qgis import processing
-
-ROOT_DIR = Path.home() / Path("Pulpit/drony/")
-STYLES = {
-    "water_": str(ROOT_DIR / Path("styles/water.qml")),
-    "buildings_": str(ROOT_DIR / Path("styles/buildings.qml")),
-    "roads_": str(ROOT_DIR / Path("styles/roads.qml")),
-    "railways_": str(ROOT_DIR / Path("styles/railways.qml")),
-    "landuse_": str(ROOT_DIR / Path("styles/landuse.qml")),
-}
-BUILDINGS_LAYER_NAME = "buildings_"
-GRID_LAYER_NAME = "Siatka"
+from PyQt5.QtCore import QVariant
+from qgis.core import QgsVectorLayer, QgsSpatialIndex, QgsFeature, QgsField
 
 
-def reproject_layers_to_2180():
-    """Konwertuje wszystkie warstwy wektorowe z EPSG:4326 do EPSG:2180"""
-    project = QgsProject.instance()
-    layers = project.mapLayers().values()
+class GridAnalyzer:
+    def __init__(self):
+        self.buildings_layer = LayerManager.get_layer_containing(
+            Config.BUILDINGS_LAYER_NAME
+        )
+        self.grid_layer = LayerManager.get_project().mapLayersByName("Siatka")[0]
 
-    # Progress dialog
-    vector_layers = [layer for layer in layers if isinstance(layer, QgsVectorLayer)]
-    progress = QProgressDialog("Reprojekcja warstw...", "Anuluj", 0, len(vector_layers))
-    progress.setWindowModality(Qt.WindowModal)
-    progress.show()
+    def reproject_layers_to_2180(self):
+        layers = LayerManager.get_project().mapLayers().values()
+        vector_layers = [layer for layer in layers if isinstance(layer, QgsVectorLayer)]
 
-    current = 0
+        progress = QProgressDialog(
+            "Reprojecting layers...", "Cancel", 0, len(vector_layers)
+        )
+        progress.setWindowModality(Qt.WindowModal)
+        progress.show()
 
-    for layer in vector_layers:
-        if progress.wasCanceled():
-            break
+        for idx, layer in enumerate(vector_layers):
+            if progress.wasCanceled():
+                break
 
-        source_crs = layer.crs()
-        if source_crs.authid() == "EPSG:4326":
-            new_layer_name = f"{layer.name()}_2180"
+            if layer.crs().authid() == "EPSG:4326":
+                new_layer_name = f"{layer.name()}_2180"
+                params = {
+                    "INPUT": layer,
+                    "TARGET_CRS": "EPSG:2180",
+                    "OUTPUT": "memory:" + new_layer_name,
+                }
+                result = processing.run("native:reprojectlayer", params)
+                new_layer = result["OUTPUT"]
+                LayerManager.get_project().addMapLayer(new_layer)
+                LayerManager.get_project().removeMapLayer(layer)
 
-            params = {
-                "INPUT": layer,
-                "TARGET_CRS": "EPSG:2180",
-                "OUTPUT": "memory:" + new_layer_name,
-            }
-            result = processing.run("native:reprojectlayer", params)
+            progress.setValue(idx + 1)
 
-            new_layer = result["OUTPUT"]
-            project.addMapLayer(new_layer)
-            project.removeMapLayer(layer)
+        progress.close()
+        iface.mapCanvas().refresh()
 
-            print(f"Przekonwertowano warstwę: {new_layer.name()} do EPSG:2180")
+    def analyze_grid(self):
+        building_index = QgsSpatialIndex()
+        for feat in self.buildings_layer.getFeatures():
+            building_index.addFeature(feat)
 
-        current += 1
-        progress.setValue(current)
+        result_layer = QgsVectorLayer(
+            "Polygon?crs=" + self.grid_layer.crs().toWkt(),
+            Config.GRID_ANALYSIS_LAYER_NAME,
+            "memory",
+        )
+        provider = result_layer.dataProvider()
+        provider.addAttributes(self.grid_layer.fields())
+        provider.addAttributes([QgsField("building_percent", QVariant.Double)])
+        result_layer.updateFields()
 
-    progress.close()
-    iface.mapCanvas().refresh()
-    print("Zakończono reprojekcję warstw.")
+        progress = QProgressDialog(
+            "Analyzing grid...", "Cancel", 0, self.grid_layer.featureCount()
+        )
+        progress.setWindowModality(Qt.WindowModal)
+        progress.show()
 
+        features_to_add = []
+        for idx, grid_feature in enumerate(self.grid_layer.getFeatures()):
+            if progress.wasCanceled():
+                break
 
-def reorder_layers(preferred_order, grid_layer_name):
-    """Zmiana kolejności warstw w projekcie"""
-    root = QgsProject.instance().layerTreeRoot()
-    layers = QgsProject.instance().mapLayers().values()
+            grid_geom = grid_feature.geometry()
+            grid_area = grid_geom.area()
 
-    vector_layers = [
-        layer for layer in layers if layer.type() == QgsMapLayer.VectorLayer
-    ]
-    raster_layers = [
-        layer for layer in layers if layer.type() == QgsMapLayer.RasterLayer
-    ]
+            if grid_area == 0:
+                continue
 
-    ordered_layers = []
+            building_area_total = self._calculate_building_area(
+                grid_geom, building_index
+            )
+            building_percent = (building_area_total / grid_area) * 100
 
-    # Dodawanie warstw w określonej kolejności
-    for layer in vector_layers:
-        if grid_layer_name.lower() in layer.name().lower():
-            ordered_layers.append(layer)
+            if building_percent > 5:
+                new_feature = QgsFeature(result_layer.fields())
+                new_feature.setGeometry(grid_geom)
+                new_feature.setAttributes(
+                    grid_feature.attributes() + [building_percent]
+                )
+                features_to_add.append(new_feature)
 
-    for layer_name in preferred_order:
-        for layer in vector_layers:
-            if (
-                layer_name.lower() in layer.name().lower()
-                and layer not in ordered_layers
-            ):
-                ordered_layers.append(layer)
+            progress.setValue(idx + 1)
 
-    for layer in vector_layers:
-        if layer not in ordered_layers:
-            ordered_layers.append(layer)
+        provider.addFeatures(features_to_add)
+        progress.close()
 
-    ordered_layers.extend(raster_layers)
+        LayerManager.get_project().addMapLayer(result_layer)
+        LayerManager.move_layer_to_top(result_layer)
+        iface.mapCanvas().refresh()
 
-    # Aktualizacja kolejności w drzewie warstw
-    for layer in reversed(ordered_layers):
-        node = root.findLayer(layer.id())
-        if node:
-            clone = node.clone()
-            parent = node.parent()
-            parent.insertChildNode(0, clone)
-            parent.removeChildNode(node)
-
-
-def apply_styles(styles):
-    """Aplikacja stylów do warstw"""
-    layers = QgsProject.instance().mapLayers().values()
-
-    for layer in layers:
-        layer_name = layer.name().lower()
-        for key, style_path in styles.items():
-            if key in layer_name:
-                if os.path.exists(style_path):
-                    success = layer.loadNamedStyle(style_path)
-                    if success[1]:
-                        layer.triggerRepaint()
-                        print(f"Zastosowano styl dla warstwy: {layer_name}")
-                    else:
-                        print(
-                            f"Nie udało się załadować stylu dla warstwy: {layer_name}"
-                        )
-                else:
-                    print(f"Nie znaleziono pliku stylu: {style_path}")
-
-    iface.mapCanvas().refresh()
-    print("Zakończono aplikację stylów.")
-
-
-def get_layer_containing(substr):
-    layer = None
-    for layer in QgsProject.instance().mapLayers().values():
-        if substr in layer.name():
-            layer = layer
-            break
-    if layer is None:
-        raise ValueError(f"Nie znaleziono warstwy zawierającej '{layer}' w nazwie")
-    return layer
-
-
-def move_layer_to_top(layer):
-    """Przenosi warstwę na samą górę w panelu warstw"""
-    root = QgsProject.instance().layerTreeRoot()
-    node = root.findLayer(layer.id())
-    if node:
-        clone = node.clone()
-        parent = node.parent()
-        parent.insertChildNode(0, clone)
-        parent.removeChildNode(node)
-
-
-def analyze_grid():
-    """Analiza siatki i tworzenie nowej warstwy z oczkami zawierającymi >5% budynków"""
-    buildings_layer = get_layer_containing(BUILDINGS_LAYER_NAME)
-    grid_layer = QgsProject.instance().mapLayersByName("Siatka")[0]
-
-    # Utwórz spatial index dla budynków
-    building_index = QgsSpatialIndex()
-    for feat in buildings_layer.getFeatures():
-        building_index.addFeature(feat)
-
-    # Utwórz nową warstwę
-    result_layer = QgsVectorLayer(
-        "Polygon?crs=" + grid_layer.crs().toWkt(), "grid_above_5_percent", "memory"
-    )
-    result_layer_provider = result_layer.dataProvider()
-
-    # Dodaj pola
-    result_layer_provider.addAttributes(grid_layer.fields())
-    result_layer_provider.addAttributes([QgsField("building_percent", QVariant.Double)])
-    result_layer.updateFields()
-
-    # Utworzenie progress dialog
-    feature_count = grid_layer.featureCount()
-    progress = QProgressDialog("Analizowanie siatki...", "Anuluj", 0, feature_count)
-    progress.setWindowModality(Qt.WindowModal)
-    progress.show()
-
-    # Przygotuj features do dodania
-    features_to_add = []
-    current = 0
-
-    for grid_feature in grid_layer.getFeatures():
-        if progress.wasCanceled():
-            break
-
-        grid_geom = grid_feature.geometry()
-        grid_area = grid_geom.area()
-
-        if grid_area == 0:
-            continue
-
-        # Znajdź potencjalne przecięcia używając spatial index
+    def _calculate_building_area(self, grid_geom, building_index):
         intersecting_ids = building_index.intersects(grid_geom.boundingBox())
         building_area_total = 0
 
-        # Sprawdź tylko budynki, które mogą się przecinać
         for building_id in intersecting_ids:
-            building_feature = buildings_layer.getFeature(building_id)
+            building_feature = self.buildings_layer.getFeature(building_id)
             building_geom = building_feature.geometry()
 
             if grid_geom.intersects(building_geom):
@@ -211,46 +112,23 @@ def analyze_grid():
                 if not intersection.isEmpty():
                     building_area_total += intersection.area()
 
-        building_percent = (building_area_total / grid_area) * 100
-
-        if building_percent > 5:
-            new_feature = QgsFeature(result_layer.fields())
-            new_feature.setGeometry(grid_geom)
-            new_feature.setAttributes(grid_feature.attributes() + [building_percent])
-            features_to_add.append(new_feature)
-
-        current += 1
-        progress.setValue(current)
-
-    result_layer_provider.addFeatures(features_to_add)
-    progress.close()
-    QgsProject.instance().addMapLayer(result_layer)
-    move_layer_to_top(result_layer)
-    iface.mapCanvas().refresh()
+        return building_area_total
 
 
 def main():
-    preferred_order = [
-        "buildings_",
-        "roads_",
-        "railways_",
-        "landuse_",
-        "water_",
-    ]
-    reproject_layers_to_2180()
+    analyzer = GridAnalyzer()
+    analyzer.reproject_layers_to_2180()
 
-    print("Zmiana kolejności warstw...")
-    reorder_layers(preferred_order, GRID_LAYER_NAME)
+    print("Reordering layers...")
+    LayerManager.reorder_layers(Config.PREFERRED_LAYER_ORDER, Config.GRID_LAYER_NAME)
 
-    print("Aplikowanie stylów...")
-    apply_styles(STYLES)
+    print("Applying styles...")
+    StyleManager.apply_styles(Config.STYLES)
 
-    iface.mapCanvas().refresh()
+    print("Starting grid analysis...")
+    analyzer.analyze_grid()
 
-    print("Rozpoczynanie analizy siatki...")
-    analyze_grid()
-
-    print("Proces zakończony pomyślnie!")
+    print("Process completed successfully")
 
 
 main()

@@ -15,6 +15,4 @@
 5. Run `step2.py` script. It will save vector and orto tiles to `/zdjecia` and `/mapy` directories.
     - Remember to deselect everything, as some selected buildings may turn yellow instead of red when extracted.
 
-6. If you are done with this vector layer (Voivodeship) you can run `step3.py` to clear your project (remove all layers and deletes all orto files)
-
 ## Remember to adjust your paths in scrpits!

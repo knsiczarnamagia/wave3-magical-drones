@@ -1,113 +1,133 @@
-import os
-import uuid
+from utils import Config, LayerManager, StyleManager
 from pathlib import Path
+import uuid
+import os
 from qgis.core import (
-    QgsProject,
+    QgsMapLayer,
     QgsMapSettings,
     QgsMapRendererCustomPainterJob,
-    QgsMapLayer,
 )
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtWidgets import QProgressDialog
-from PyQt5.QtCore import QSize, Qt
-from qgis.utils import iface
 from PyQt5.QtGui import QImage, QPainter
-
-ROOT_DIR = Path.home() / Path("Pulpit/drony/")
-place_id = str(uuid.uuid4())[:8]
-RASTER_OUT_DIR = ROOT_DIR / Path(f"zdjecia/{place_id}/")
-VECTOR_OUT_DIR = ROOT_DIR / Path(f"mapy/{place_id}/")
-RASTER_OUT_DIR.mkdir(parents=True, exist_ok=False)
-VECTOR_OUT_DIR.mkdir(parents=True, exist_ok=False)
+from qgis.utils import iface
 
 
-def render_views(
-    output_folder_vectors, output_folder_rasters, image_width=500, image_height=500
-):
-    grid_layer = QgsProject.instance().mapLayersByName("grid_above_5_percent")[0]
-    """Renderowanie i eksport widoków"""
-    layers = QgsProject.instance().mapLayers().values()
+class ViewRenderer:
+    def __init__(self):
+        place_id = str(uuid.uuid4())[:8]
+        self.raster_out_dir = Config.ROOT_DIR / Path(f"sat/{place_id}")
+        self.vector_out_dir = Config.ROOT_DIR / Path(f"map/{place_id}")
+        self.raster_out_dir.mkdir(parents=True, exist_ok=True)
+        self.vector_out_dir.mkdir(parents=True, exist_ok=True)
 
-    total_features = grid_layer.featureCount()
-    progress_dialog = QProgressDialog(
-        "Proszę o czekanie...", "Anuluj", 0, total_features, iface.mainWindow()
+        self.grid_layer = LayerManager.get_project().mapLayersByName(
+            Config.GRID_ANALYSIS_LAYER_NAME
+        )[0]
+        self.layers = LayerManager.get_project().mapLayers().values()
+
+    def render_views(self, image_width=500, image_height=500):
+        progress_dialog = QProgressDialog(
+            "Rendering views...",
+            "Cancel",
+            0,
+            self.grid_layer.featureCount(),
+            iface.mainWindow(),
+        )
+        progress_dialog.setWindowModality(Qt.WindowModal)
+        progress_dialog.setMinimumDuration(0)
+        progress_dialog.setWindowTitle("Processing")
+        progress_dialog.show()
+
+        for idx, feature in enumerate(self.grid_layer.getFeatures()):
+            if progress_dialog.wasCanceled():
+                break
+
+            extent = feature.geometry().boundingBox()
+            feature_id = feature.id()
+
+            vector_layers = []
+            raster_layers = []
+
+            for layer in self.layers:
+                if extent.intersects(layer.extent()):
+                    if layer.type() == QgsMapLayer.VectorLayer:
+                        vector_layers.append(layer)
+                    elif layer.type() == QgsMapLayer.RasterLayer:
+                        raster_layers.append(layer)
+
+            if vector_layers:
+                self._render_layer_group(
+                    vector_layers,
+                    extent,
+                    image_width,
+                    image_height,
+                    self.vector_out_dir,
+                    feature_id,
+                    "vectors",
+                )
+
+            if raster_layers:
+                self._render_layer_group(
+                    raster_layers,
+                    extent,
+                    image_width,
+                    image_height,
+                    self.raster_out_dir,
+                    feature_id,
+                    "rasters",
+                )
+
+            progress_dialog.setValue(idx + 1)
+            iface.mainWindow().repaint()
+
+        progress_dialog.close()
+        print("Rendering completed")
+
+    def _render_layer_group(
+        self, layers, extent, width, height, output_folder, id, layer_type
+    ):
+        map_settings = QgsMapSettings()
+        map_settings.setLayers(layers)
+        map_settings.setExtent(extent)
+        map_settings.setOutputSize(QSize(width, height))
+        map_settings.setBackgroundColor(Qt.white)
+        map_settings.setOutputDpi(96)
+
+        image = QImage(width, height, QImage.Format_ARGB32_Premultiplied)
+        image.fill(Qt.white)
+
+        painter = QPainter(image)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        render_job = QgsMapRendererCustomPainterJob(map_settings, painter)
+        render_job.start()
+        render_job.waitForFinished()
+        painter.end()
+
+        output_path = os.path.join(str(output_folder), f"cell_{id}.png")
+        success = image.save(output_path)
+
+        if success:
+            print(
+                f"Successfully saved {layer_type} image for ID: {id} at {output_path}"
+            )
+        else:
+            print(f"Failed to save {layer_type} image for ID: {id}")
+
+
+def main():
+    LayerManager.clear_all_selections()
+    StyleManager.set_grid_transparent(Config.GRID_ANALYSIS_LAYER_NAME)
+    StyleManager.set_grid_transparent(
+        Config.GRID_LAYER_NAME
+    )  # it could be also removed completely
+    LayerManager.reorder_layers(
+        Config.PREFERRED_LAYER_ORDER, Config.GRID_ANALYSIS_LAYER_NAME
     )
-    progress_dialog.setCancelButtonText("Stop")
-    progress_dialog.setWindowTitle("Renderowanie widoków")
-    progress_dialog.setLabelText("Proszę o czekanie...")
-    progress_dialog.setMaximumSize(400, 100)
-    progress_dialog.setAutoReset(False)
-    progress_dialog.setAutoClose(False)
-    progress_dialog.show()
 
-    progress = 0
-    for feature in grid_layer.getFeatures():
-        progress += 1
-        progress_dialog.setValue(progress)
-
-        if progress_dialog.wasCanceled():
-            break
-
-        id = feature.id()
-        extent = feature.geometry().boundingBox()
-        print(f"Renderowanie oczka ID {feature.id()} (Extent: {extent.toString()})")
-
-        vector_layers = [
-            layer
-            for layer in layers
-            if layer.type() == QgsMapLayer.VectorLayer
-            and extent.intersects(layer.extent())
-        ]
-        raster_layers = [
-            layer
-            for layer in layers
-            if layer.type() == QgsMapLayer.RasterLayer
-            and extent.intersects(layer.extent())
-        ]
-
-        if vector_layers:
-            render_layer_group(
-                vector_layers,
-                extent,
-                image_width,
-                image_height,
-                output_folder_vectors,
-                id,
-                "vectors",
-            )
-
-        if raster_layers:
-            render_layer_group(
-                raster_layers,
-                extent,
-                image_width,
-                image_height,
-                output_folder_rasters,
-                id,
-                "rasters",
-            )
-    progress_dialog.close()
+    renderer = ViewRenderer()
+    renderer.render_views()
 
 
-def render_layer_group(layers, extent, width, height, output_folder, id, layer_type):
-    """Renderowanie grupy warstw (wektorowych lub rastrowych)"""
-    map_settings = QgsMapSettings()
-    map_settings.setLayers(layers)
-    map_settings.setExtent(extent)
-    map_settings.setOutputSize(QSize(width, height))
-    map_settings.setBackgroundColor(Qt.white)
-
-    image = QImage(QSize(width, height), QImage.Format_ARGB32_Premultiplied)
-    image.fill(Qt.white)
-
-    painter = QPainter(image)
-    render_job = QgsMapRendererCustomPainterJob(map_settings, painter)
-    render_job.start()
-    render_job.waitForFinished()
-    painter.end()
-
-    output_path = os.path.join(output_folder, f"cell_{id}.png")
-    image.save(output_path)
-    print(f"Zapisano obraz {layer_type} dla ID: {id}")
-
-
-render_views(VECTOR_OUT_DIR, RASTER_OUT_DIR)
+main()
