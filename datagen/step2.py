@@ -15,18 +15,20 @@ from qgis.utils import iface
 
 class ViewRenderer:
     def __init__(self):
-        place_id = str(uuid.uuid4())[:8]
-        self.raster_out_dir = Config.ROOT_DIR / Path(f"sat/{place_id}")
-        self.vector_out_dir = Config.ROOT_DIR / Path(f"map/{place_id}")
-        self.raster_out_dir.mkdir(parents=True, exist_ok=True)
-        self.vector_out_dir.mkdir(parents=True, exist_ok=True)
-
+        self._create_dirs()
         self.grid_layer = LayerManager.get_project().mapLayersByName(
             Config.GRID_ANALYSIS_LAYER_NAME
         )[0]
         self.layers = LayerManager.get_project().mapLayers().values()
 
-    def render_views(self, image_width=500, image_height=500):
+    def _create_dirs(self):
+        place_id = str(uuid.uuid4())[:8]
+        self.raster_out_dir = Config.ROOT_DIR / Path("sat", place_id)
+        self.vector_out_dir = Config.ROOT_DIR / Path("map", place_id)
+        self.raster_out_dir.mkdir(parents=True, exist_ok=True)
+        self.vector_out_dir.mkdir(parents=True, exist_ok=True)
+
+    def render_views(self, image_width: int = 500, image_height: int = 500):
         progress_dialog = QProgressDialog(
             "Rendering views...",
             "Cancel",
@@ -56,27 +58,22 @@ class ViewRenderer:
                     elif layer.type() == QgsMapLayer.RasterLayer:
                         raster_layers.append(layer)
 
-            if vector_layers:
-                self._render_layer_group(
-                    vector_layers,
-                    extent,
-                    image_width,
-                    image_height,
-                    self.vector_out_dir,
-                    feature_id,
-                    "vectors",
-                )
+            layer_configs = [
+                (vector_layers, self.vector_out_dir, "vectors"),
+                (raster_layers, self.raster_out_dir, "rasters"),
+            ]
 
-            if raster_layers:
-                self._render_layer_group(
-                    raster_layers,
-                    extent,
-                    image_width,
-                    image_height,
-                    self.raster_out_dir,
-                    feature_id,
-                    "rasters",
-                )
+            for layers, out_dir, layer_type in layer_configs:
+                if layers:
+                    self._render_layer_group(
+                        layers,
+                        extent,
+                        image_width,
+                        image_height,
+                        out_dir,
+                        feature_id,
+                        layer_type,
+                    )
 
             progress_dialog.setValue(idx + 1)
             iface.mainWindow().repaint()
@@ -85,7 +82,14 @@ class ViewRenderer:
         print("Rendering completed")
 
     def _render_layer_group(
-        self, layers, extent, width, height, output_folder, id, layer_type
+        self,
+        layers: list,
+        extent,
+        width: int,
+        height: int,
+        output_folder: Path,
+        id,
+        layer_type: str,
     ):
         map_settings = QgsMapSettings()
         map_settings.setLayers(layers)
