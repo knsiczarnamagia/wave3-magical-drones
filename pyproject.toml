@@ -13,6 +13,8 @@ torch = "2.2.2"
 pytorch-lightning = "^2.5.0"
 torchvision = "^0.17"
 numpy = "<2"
+datasets = "^3.2.0"
+pillow = "^11.0.0"
 
 [build-system]
 requires = ["poetry-core"]
