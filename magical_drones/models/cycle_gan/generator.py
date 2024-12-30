@@ -84,7 +84,7 @@ class Generator(BaseGenerator):
         return model
 
     def forward(self, noise: Tensor) -> Tensor:
-        x = self.initial(noise)
+        x = self.model(noise)
 
         for layer in self.down_blocks:
             x = layer(x)
