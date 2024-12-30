@@ -2,7 +2,7 @@ from torch import tanh
 from torch import Tensor
 import torch.nn as nn
 
-from magical_drones.models import BaseGenerator
+from magical_drones.models.base_gan.generator import BaseGenerator
 
 
 class Generator(BaseGenerator):
