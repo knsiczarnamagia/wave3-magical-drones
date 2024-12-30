@@ -86,14 +86,6 @@ class Generator(BaseGenerator):
     def forward(self, noise: Tensor) -> Tensor:
         x = self.model(noise)
 
-        for layer in self.down_blocks:
-            x = layer(x)
-
-        x = self.residual_blocks(x)
-
-        for layer in self.up_blocks:
-            x = layer(x)
-
         return tanh(self.last_block(x))
 
 
