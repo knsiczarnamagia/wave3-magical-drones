@@ -1,6 +1,6 @@
 from torch import Tensor
 import torch
-from magical_drones.models import BaseGAN
+from magical_drones.models.base_gan.gan import BaseGAN
 from magical_drones.models.cycle_gan.discriminator import Discriminator
 
 from magical_drones.models.cycle_gan.generator import Generator
