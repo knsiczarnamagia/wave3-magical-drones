@@ -18,7 +18,17 @@ class CycleGAN(BaseGAN):
         b2: float = 0.999,
         **kwargs,
     ):
-        super().__init__(channels=channels, width=width, height=height)
+        super().__init__(
+            channels=channels,
+            width=width,
+            height=height,
+            latent_dim=latent_dim,
+            lr=lr,
+            b1=b1,
+            b2=b2,
+            **kwargs
+        )
+        self.generated_imgs = None
         self.save_hyperparameters()
         self.automatic_optimization = False
         self.generator = Generator()
