@@ -19,7 +19,7 @@ class CycleGAN(BaseGAN):
         batch_size: int = 32,
         **kwargs,
     ):
-        super().__init__()
+        super().__init__(channels=channels, width=width, height=height)
         self.save_hyperparameters()
         self.automatic_optimization = False
         self.generator = Generator()
@@ -86,3 +86,6 @@ class CycleGAN(BaseGAN):
         opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(b1, b2))
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
         return [opt_g, opt_d], []
+
+    def on_validation_epoch_end(self):
+        pass
