@@ -23,8 +23,7 @@ class Generator(BaseGenerator):
             nn.ReLU(inplace=True),
         )
 
-        down_blocks = nn.ModuleList(
-            [
+        down_blocks = nn.Sequential(
                 ConvBlock(
                     self.num_features,
                     self.num_features * 2,
@@ -39,15 +38,13 @@ class Generator(BaseGenerator):
                     stride=2,
                     padding=1,
                 ),
-            ]
         )
 
         residual_blocks = nn.Sequential(
             *[ResidualBlock(self.num_features * 4) for _ in range(self.num_features)]
         )
 
-        up_blocks = nn.ModuleList(
-            [
+        up_blocks = nn.Sequential(
                 ConvBlock(
                     self.num_features * 4,
                     self.num_features * 2,
@@ -66,7 +63,6 @@ class Generator(BaseGenerator):
                     padding=1,
                     output_padding=1,
                 ),
-            ]
         )
 
         last_block = nn.Conv2d(
@@ -86,7 +82,7 @@ class Generator(BaseGenerator):
     def forward(self, noise: Tensor) -> Tensor:
         x = self.model(noise)
 
-        return tanh(self.last_block(x))
+        return tanh(self.model(x))
 
 
 class ConvBlock(nn.Module):

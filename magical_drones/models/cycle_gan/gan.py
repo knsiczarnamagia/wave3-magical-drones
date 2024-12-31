@@ -16,7 +16,6 @@ class CycleGAN(BaseGAN):
         lr: float = 0.0002,
         b1: float = 0.5,
         b2: float = 0.999,
-        batch_size: int = 32,
         **kwargs,
     ):
         super().__init__(channels=channels, width=width, height=height)
