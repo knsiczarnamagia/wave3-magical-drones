@@ -18,7 +18,7 @@ class BaseGAN(ABC, LightningModule):
         **kwargs,
     ):
         super().__init__()
-        pass
+        self.save_hyperparameters(channels, width, height, latent_dim, lr, b1, b2, kwargs)
 
     def adversarial_loss(self, y_hat: Tensor, y: Tensor) -> Tensor:
         return F.binary_cross_entropy(y_hat, y)
