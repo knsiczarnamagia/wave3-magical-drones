@@ -11,7 +11,6 @@ class BaseGAN(ABC, LightningModule):
         channels: int = 3,
         width: int = 224,
         height: int = 224,
-
         latent_dim: int = 100,
         lr: float = 0.0002,
         b1: float = 0.5,
