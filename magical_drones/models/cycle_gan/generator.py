@@ -24,20 +24,20 @@ class Generator(BaseGenerator):
         )
 
         down_blocks = nn.Sequential(
-                ConvBlock(
-                    self.num_features,
-                    self.num_features * 2,
-                    kernel_size=3,
-                    stride=2,
-                    padding=1,
-                ),
-                ConvBlock(
-                    self.num_features * 2,
-                    self.num_features * 4,
-                    kernel_size=3,
-                    stride=2,
-                    padding=1,
-                ),
+            ConvBlock(
+                self.num_features,
+                self.num_features * 2,
+                kernel_size=3,
+                stride=2,
+                padding=1,
+            ),
+            ConvBlock(
+                self.num_features * 2,
+                self.num_features * 4,
+                kernel_size=3,
+                stride=2,
+                padding=1,
+            ),
         )
 
         residual_blocks = nn.Sequential(
@@ -45,24 +45,24 @@ class Generator(BaseGenerator):
         )
 
         up_blocks = nn.Sequential(
-                ConvBlock(
-                    self.num_features * 4,
-                    self.num_features * 2,
-                    down=False,
-                    kernel_size=3,
-                    stride=2,
-                    padding=1,
-                    output_padding=1,
-                ),
-                ConvBlock(
-                    self.num_features * 2,
-                    self.num_features,
-                    down=False,
-                    kernel_size=3,
-                    stride=2,
-                    padding=1,
-                    output_padding=1,
-                ),
+            ConvBlock(
+                self.num_features * 4,
+                self.num_features * 2,
+                down=False,
+                kernel_size=3,
+                stride=2,
+                padding=1,
+                output_padding=1,
+            ),
+            ConvBlock(
+                self.num_features * 2,
+                self.num_features,
+                down=False,
+                kernel_size=3,
+                stride=2,
+                padding=1,
+                output_padding=1,
+            ),
         )
 
         last_block = nn.Conv2d(
@@ -80,9 +80,7 @@ class Generator(BaseGenerator):
         return model
 
     def forward(self, noise: Tensor) -> Tensor:
-        x = self.model(noise)
-
-        return tanh(self.model(x))
+        return tanh(self.model(noise))
 
 
 class ConvBlock(nn.Module):

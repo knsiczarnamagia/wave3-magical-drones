@@ -4,10 +4,7 @@ from torch import nn, Tensor
 
 class BaseGenerator(ABC, nn.Module):
     def __init__(
-        self,
-        input_channels: int = 3,
-        num_features: int = 64,
-        num_residuals: int = 2
+        self, input_channels: int = 3, num_features: int = 64, num_residuals: int = 2
     ):
         super().__init__()
         self.input_channels = input_channels

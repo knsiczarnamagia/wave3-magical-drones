@@ -26,7 +26,7 @@ class CycleGAN(BaseGAN):
             lr=lr,
             b1=b1,
             b2=b2,
-            **kwargs
+            **kwargs,
         )
         self.generated_imgs = None
         self.save_hyperparameters()
