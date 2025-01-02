@@ -6,7 +6,6 @@ import torch
 class Discriminator(BaseDiscriminator):
     def __init__(self):
         super().__init__()
-        self.model = self._construct_model()
 
     def _construct_model(self):
         initial_layer = nn.Sequential(
@@ -46,7 +45,6 @@ class Discriminator(BaseDiscriminator):
         return self.model
 
     def forward(self, x: Tensor) -> Tensor:
-        x = self.initial(x)
         return torch.sigmoid(self.model(x))
 
 
