@@ -32,7 +32,7 @@ class Discriminator(BaseDiscriminator):
 
         layers.append(
             nn.Conv2d(
-                self.input_channels,
+                in_channels,
                 1,
                 kernel_size=4,
                 stride=1,
