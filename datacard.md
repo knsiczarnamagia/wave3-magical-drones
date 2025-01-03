@@ -51,11 +51,9 @@ This dataset card was created as one of the WAVE3 obligatory project requirement
 
   
 {
-
   sat_image: "localhost:8080/sat/warszawa_cell_1.jpg",
   map_image: "localhost:8080/map/warszawa_cell_1.jpg",
   name: "warszawa_cell_1.jpg"
-
 }
 
   
