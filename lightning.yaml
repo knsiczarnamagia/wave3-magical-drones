@@ -1,0 +1,20 @@
+project:
+  name: magical-drones
+  description: WAVE 3 Magical Drones PyCharm integration for Lightning AI Studio
+
+environment:
+  python_version: 3.12
+  gpu_type: T4
+  gpu_count: 1
+
+tasks:
+  - name: train
+    script: train.py
+    resources:
+      gpu_type: T4
+      gpu_count: 1
+  - name: test
+    script: test.py
+    resources:
+      gpu_type: T4
+      gpu_count: 1

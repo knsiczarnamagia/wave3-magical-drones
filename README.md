@@ -1,10 +1,28 @@
-# magical-drones
-Repository with code. For research look here: link
+# 🌊 WAVE 3 | Magical Drones 🌊
 
-## Initial requirements of WAVE3 project
+> Repository for the Map Generation project realized during WAVE3 by the Magical Drones team supervised by Świta Znachora.
 
-Each project should have: 
-- Poetry with at least pytest and ruff
-- `workflow.yaml` similar to wave3-workshop
-- `check_poetry_version.sh` (semantic versioning checker)
-- `Makefile`
+### Install
+...
+
+### Run locally
+...
+
+### :fire: Run in Lightning AI Studio :fire:
+Setup the studio:
+1. Create account: ...
+2. ...
+3. ...
+4. ...
+5. Connect PyCharm via SSH
+6. ...
+
+Sync the project with:
+```shell
+make studio-sync
+```
+
+Run training with:
+```shell
+make studio-train
+```

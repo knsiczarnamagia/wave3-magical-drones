@@ -3,11 +3,6 @@ install:
 
 test:
 	poetry run pytest ./tests -vv
-	@if [ -d "webapp" ]; then \
-		cd webapp && ./mvnw test; \
-	else \
-		echo "Directory 'webapp' does not exist!"; \
-	fi
 
 update:
 	poetry update
@@ -18,3 +13,9 @@ format:
 
 check:
 	poetry run ruff format --check .
+
+studio-train:   ## Run training on Lightning AI Studio
+	lightning run train.py
+
+studio-sync:   ## Sync Lightning AI Studio
+	lightning upload-project --path .
