@@ -83,6 +83,7 @@ class Generator(BaseGenerator):
         return tanh(self.model(noise))
 
 
+
 class ConvBlock(nn.Module):
     def __init__(
         self, in_channels, out_channels, down=True, use_activation=True, **kwargs
