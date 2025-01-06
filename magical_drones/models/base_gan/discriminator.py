@@ -5,9 +5,9 @@ from torch import nn, Tensor
 
 class BaseDiscriminator(ABC, nn.Module):
     def __init__(
-            self,
-            input_channels: int = 3,
-            features: list = None,
+        self,
+        input_channels: int = 3,
+        features: list = None,
     ):
         super().__init__()
         self.input_channels = input_channels

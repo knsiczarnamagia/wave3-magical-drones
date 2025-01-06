@@ -7,6 +7,7 @@ class Discriminator(BaseDiscriminator):
     def __init__(self):
         super().__init__()
         self.model = self._construct_model()
+
     def _construct_model(self):
         initial_layer = nn.Sequential(
             nn.Conv2d(
@@ -25,7 +26,11 @@ class Discriminator(BaseDiscriminator):
 
         for feature in self.features[1:]:
             layers.append(
-                ConvBlock(in_channels, feature, stride=1 if feature == self.features[-1] else 2),
+                ConvBlock(
+                    in_channels,
+                    feature,
+                    stride=1 if feature == self.features[-1] else 2,
+                ),
             )
             in_channels = feature
 
