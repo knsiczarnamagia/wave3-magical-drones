@@ -12,26 +12,32 @@ def magmap():
     split_for_upload = ["train[:80]", "train[80:90]", "train[90:100]"]
     batch_size = 32
 
-    train_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.ToDtype(torch.float32, scale=True),
-        transforms.RandomHorizontalFlip(0.5),
-        transforms.RandomRotation(180),
-        transforms.RandomAffine(degrees=30, scale=(0.8, 1.2), shear=10),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-    ])
+    train_transform = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.ToDtype(torch.float32, scale=True),
+            transforms.RandomHorizontalFlip(0.5),
+            transforms.RandomRotation(180),
+            transforms.RandomAffine(degrees=30, scale=(0.8, 1.2), shear=10),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        ]
+    )
 
-    val_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.ToDtype(torch.float32, scale=True),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-    ])
+    val_transform = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.ToDtype(torch.float32, scale=True),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        ]
+    )
 
-    test_transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.ToDtype(torch.float32, scale=True),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-    ])
+    test_transform = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.ToDtype(torch.float32, scale=True),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        ]
+    )
 
     return MagMapV1(
         data_link,
@@ -39,7 +45,7 @@ def magmap():
         train_transform=train_transform,
         val_transform=val_transform,
         test_transform=test_transform,
-        split_for_upload=split_for_upload
+        split_for_upload=split_for_upload,
     )
 
 
@@ -47,7 +53,9 @@ def test_prepare_data(magmap):
     print("Preparing data...")
     magmap.prepare_data()
     assert magmap.train_data_dict is not None, "The train data has not been uploaded."
-    assert magmap.val_data_dict is not None, "The validation data has not been uploaded."
+    assert (
+        magmap.val_data_dict is not None
+    ), "The validation data has not been uploaded."
     assert magmap.test_data_dict is not None, "The test data has not been uploaded."
 
 

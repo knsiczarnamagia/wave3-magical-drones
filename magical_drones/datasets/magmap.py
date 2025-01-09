@@ -25,15 +25,15 @@ class MagMapDataset(Dataset):
 
         filename = sample["filename"]
 
-        sat_image = pil_to_tensor(sat_image).float() / 255.0 
-        map_image = pil_to_tensor(map_image).float() / 255.0  
-    
+        sat_image = pil_to_tensor(sat_image).float() / 255.0
+        map_image = pil_to_tensor(map_image).float() / 255.0
+
         if self.transform:
             sat_image = self.transform(sat_image)
             map_image = self.transform(map_image)
 
         return (sat_image, map_image, filename)
-    
+
 
 class MagMapV1(LightningDataModule):
     def __init__(
@@ -50,45 +50,52 @@ class MagMapV1(LightningDataModule):
         self.data_link = data_link
         self.data_dir = data_dir
         self.batch_size = batch_size
-        
+
         self.train_transform = train_transform
         self.val_transform = val_transform
         self.test_transform = test_transform
 
         self.split_for_upload = split_for_upload
-        
+
         self.train_data_dict = None
         self.val_data_dict = None
         self.test_data_dict = None
 
     def prepare_data(self):
         try:
-            self.train_data_dict = load_dataset(self.data_link, 
-                         split=self.split_for_upload[0], 
-                         cache_dir=self.data_dir[0])
-            
-            self.val_data_dict = load_dataset(self.data_link, 
-                         split=self.split_for_upload[1], 
-                         cache_dir=self.data_dir[1])
-            
-            self.test_data_dict = load_dataset(self.data_link, 
-                         split=self.split_for_upload[2], 
-                         cache_dir=self.data_dir[2])
+            self.train_data_dict = load_dataset(
+                self.data_link,
+                split=self.split_for_upload[0],
+                cache_dir=self.data_dir[0],
+            )
 
-            
+            self.val_data_dict = load_dataset(
+                self.data_link,
+                split=self.split_for_upload[1],
+                cache_dir=self.data_dir[1],
+            )
+
+            self.test_data_dict = load_dataset(
+                self.data_link,
+                split=self.split_for_upload[2],
+                cache_dir=self.data_dir[2],
+            )
+
         except Exception as e:
             raise RuntimeError(f"Failed to load dataset: {e}")
 
     def setup(self, stage: str = None):
-        self.train_dataset = MagMapDataset(self.train_data_dict, 
-                                           transforms=self.train_transform)
-        
-        self.val_dataset = MagMapDataset(self.val_data_dict, 
-                                           transforms=self.val_transform)
-        
-        self.test_dataset = MagMapDataset(self.test_data_dict, 
-                                           transforms=self.test_transform)
+        self.train_dataset = MagMapDataset(
+            self.train_data_dict, transforms=self.train_transform
+        )
 
+        self.val_dataset = MagMapDataset(
+            self.val_data_dict, transforms=self.val_transform
+        )
+
+        self.test_dataset = MagMapDataset(
+            self.test_data_dict, transforms=self.test_transform
+        )
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
