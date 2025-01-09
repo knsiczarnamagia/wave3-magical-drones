@@ -6,7 +6,7 @@ from PIL import Image
 import torchvision.transforms.v2 as transforms
 from torchvision.transforms.functional import pil_to_tensor
 from pathlib import Path
-from datasets import load_dataset
+from datasets import load_dataset, ReadInstruction
 
 
 class MagMapDataset(Dataset):
@@ -44,7 +44,7 @@ class MagMapV1(LightningDataModule):
         train_transform: transforms.Compose = None,
         val_transform: transforms.Compose = None,
         test_transform: transforms.Compose = None,
-        split_for_upload: list[str] = ["train[:80%]", "train[80%:90%]", "train[90%:]"],
+        split_for_upload: list[int | str] = [80, 10, 10, "%"],
     ):
         super().__init__()
         self.data_link = data_link
@@ -65,20 +65,34 @@ class MagMapV1(LightningDataModule):
         try:
             self.train_data_dict = load_dataset(
                 self.data_link,
-                split=self.split_for_upload[0],
-                cache_dir=self.data_dir[0],
+                split=ReadInstruction(
+                    "train",
+                    from_=0,
+                    to=self.split_for_upload[0] + self.split_for_upload[1],
+                    unit=self.split_for_upload[-1],
+                ),
             )
 
             self.val_data_dict = load_dataset(
                 self.data_link,
-                split=self.split_for_upload[1],
-                cache_dir=self.data_dir[1],
+                split=ReadInstruction(
+                    "train",
+                    from_=self.split_for_upload[0],
+                    to=self.split_for_upload[0] + self.split_for_upload[1],
+                    unit=self.split_for_upload[-1],
+                ),
             )
 
             self.test_data_dict = load_dataset(
                 self.data_link,
-                split=self.split_for_upload[2],
-                cache_dir=self.data_dir[2],
+                split=ReadInstruction(
+                    "train",
+                    from_=self.split_for_upload[0] + self.split_for_upload[1],
+                    to=self.split_for_upload[0]
+                    + self.split_for_upload[1]
+                    + self.split_for_upload[2],
+                    unit=self.split_for_upload[-1],
+                ),
             )
 
         except Exception as e:
