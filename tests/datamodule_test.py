@@ -5,7 +5,6 @@ from magical_drones.datasets.magmap import MagMapV1
 import torchvision.transforms.v2 as transforms
 from torchvision.transforms.v2 import RandomHorizontalFlip, RandomCrop, Resize, ToTensor
 
-
 @pytest.fixture
 def magmap():
     data_link = "czarna-magia/mag-map"
@@ -95,4 +94,3 @@ def test_test_dataloader(magmap):
     assert batch is not None, "Test dataloader batch is empty"
     assert len(batch) > 0, "Test dataloader batch contains no data"
     print(f"Sampled Test Batch: {batch}")
-
