@@ -9,7 +9,7 @@ from torchvision.transforms.v2 import RandomHorizontalFlip, RandomCrop, Resize, 
 @pytest.fixture
 def magmap():
     data_link = "czarna-magia/mag-map"
-    split_for_upload = ["train[:80]", "train[80:90]", "train[90:100]"]
+    split_for_upload = [80, 10, 10, "abs"]
     batch_size = 32
 
     train_transform = transforms.Compose(
