@@ -41,7 +41,7 @@ class Generator(BaseGenerator):
         )
 
         residual_blocks = nn.Sequential(
-            *[ResidualBlock(self.num_features * 4) for _ in range(self.num_features)]
+            *[ResidualBlock(self.num_features * 4) for _ in range(self.num_residuals)]
         )
 
         up_blocks = nn.Sequential(
@@ -74,10 +74,9 @@ class Generator(BaseGenerator):
             padding_mode="reflect",
         )
 
-        model = nn.Sequential(
+        return nn.Sequential(
             initial_layer, down_blocks, residual_blocks, up_blocks, last_block
         )
-        return model
 
     def forward(self, noise: Tensor) -> Tensor:
         return tanh(self.model(noise))

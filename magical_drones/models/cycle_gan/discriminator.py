@@ -7,6 +7,7 @@ class Discriminator(BaseDiscriminator):
     def __init__(self):
         super().__init__()
         self.model = self._construct_model()
+        self.features = [64, 128, 256, 512]
 
     def _construct_model(self):
         initial_layer = nn.Sequential(

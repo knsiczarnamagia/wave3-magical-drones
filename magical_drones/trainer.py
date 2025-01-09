@@ -10,31 +10,27 @@ from pytorch_lightning.loggers import TensorBoardLogger
 class TrainerHandler:
     def __init__(
         self,
-        model_instance: LightningModule,
+        model: LightningModule,
         datamodule: LightningDataModule,
-        max_epochs_param: int,
-        lr_param: float,
     ):
-        self.model = model_instance
-        self.datamodule = datamodule
-        self.max_epochs = max_epochs_param
-        self.lr = lr_param
         self.logger = TensorBoardLogger(
             save_dir=os.getcwd(), version=1, name="lightning_logs"
         )
 
         file_name = "train_config.yaml"
         config_path = Path("magical_drones/config", file_name)
-        self.arguments, self.epochs, self.lr = self._parse_arguments(config_path)
+        self.data_config, self.model_config, self.training_config = self._parse_arguments(config_path)
+        self.model = model(**self.model_config)
+        self.datamodule = datamodule(**self.data_config)
 
     @staticmethod
     def _parse_arguments(config_path):
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
-        return config, config.get("epochs", 1), config.get("learning_rate", 0.001)
+        return config.get("data", None), config.get("model", None), config.get("trainer", None)
 
     def training(self):
-        trainer = Trainer(max_epochs=self.max_epochs, logger=self.logger)
+        trainer = Trainer(logger=self.logger, **self.training_config)
         trainer.fit(self.model, self.datamodule)
 
     def debug(self):
@@ -43,12 +39,5 @@ class TrainerHandler:
 
 
 if __name__ == "__main__":
-    model = CycleGAN()
-    dm = MagMapV1(
-        data_link="magical_drones/datasets/magmap", batch_size=32, transform=None
-    )
-    max_epochs = 1
-    lr = 0.001
-
-    handler = TrainerHandler(model, dm, max_epochs, lr)
+    handler = TrainerHandler(CycleGAN, MagMapV1)
     handler.training()
