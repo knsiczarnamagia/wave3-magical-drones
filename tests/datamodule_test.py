@@ -7,90 +7,92 @@ from torchvision.transforms.v2 import RandomHorizontalFlip, RandomCrop, Resize, 
 
 
 @pytest.fixture
-def magmap_dataset_mocked():
+def magmap():
     data_link = "czarna-magia/mag-map"
+    split_for_upload = ["train[:80]", "train[80:90]", "train[90:100]"]
     batch_size = 32
 
-    train_transform = MagicMock(return_value=("mock_sat_tensor", "mock_map_tensor"))
-    test_transform = MagicMock(return_value=("mock_sat_tensor", "mock_map_tensor"))
+    train_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.ToDtype(torch.float32, scale=True),
+        transforms.RandomHorizontalFlip(0.5),
+        transforms.RandomRotation(180),
+        transforms.RandomAffine(degrees=30, scale=(0.8, 1.2), shear=10),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    ])
 
-    magmap = MagMapV1(
+    val_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.ToDtype(torch.float32, scale=True),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    ])
+
+    test_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.ToDtype(torch.float32, scale=True),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    ])
+
+    return MagMapV1(
         data_link,
         batch_size=batch_size,
         train_transform=train_transform,
+        val_transform=val_transform,
         test_transform=test_transform,
+        split_for_upload=split_for_upload
     )
 
-    with patch.object(magmap, "prepare_data") as mock_prepare_data:
-        mock_prepare_data.return_value = None
-        magmap.data_dict = {
-            "train": [
-                {"sat_image": "fake_sat1", "map_image": "fake_map1"},
-                {"sat_image": "fake_sat2", "map_image": "fake_map2"},
-                {"sat_image": "fake_sat3", "map_image": "fake_map3"},
-            ]
-        }
 
-        with patch("magical_drones.datasets.magmap.read_image") as mock_read_image:
-            mock_read_image.side_effect = lambda path: torch.rand(3, 256, 256)
-            yield magmap
-
-
-def test_prepare_data(magmap_dataset_mocked):
+def test_prepare_data(magmap):
     print("Preparing data...")
-    magmap_dataset_mocked.prepare_data()
-    assert magmap_dataset_mocked.data_dict is not None, "The data has not been mocked."
+    magmap.prepare_data()
+    assert magmap.train_data_dict is not None, "The train data has not been uploaded."
+    assert magmap.val_data_dict is not None, "The validation data has not been uploaded."
+    assert magmap.test_data_dict is not None, "The test data has not been uploaded."
 
 
-def test_setup_datasets(magmap_dataset_mocked):
+def test_setup_datasets(magmap):
     print("Setting up datasets...")
-    magmap_dataset_mocked.prepare_data()
-    magmap_dataset_mocked.setup()
+    magmap.prepare_data()
+    magmap.setup()
 
-    assert magmap_dataset_mocked.train_dataset is not None, "Train dataset not created"
-    assert (
-        magmap_dataset_mocked.val_dataset is not None
-    ), "Validation dataset not created"
-    assert magmap_dataset_mocked.test_dataset is not None, "Test dataset not created"
+    assert magmap.train_dataset is not None, "Train dataset not created"
+    assert magmap.val_dataset is not None, "Validation dataset not created"
+    assert magmap.test_dataset is not None, "Test dataset not created"
 
 
-def test_train_dataloader(magmap_dataset_mocked):
+def test_train_dataloader(magmap):
     print("Testing train_dataloader...")
-    magmap_dataset_mocked.prepare_data()
-    magmap_dataset_mocked.setup()
-    train_loader = magmap_dataset_mocked.train_dataloader()
+    magmap.prepare_data()
+    magmap.setup()
+    train_loader = magmap.train_dataloader()
 
-    for i, batch in enumerate(train_loader):
-        assert batch is not None, f"Batch {i + 1} is empty"
-        assert len(batch) > 0, f"Batch {i + 1} contains no data"
-        print(f"Batch {i + 1}: {batch}")
-        if i == 2:
-            break
+    batch = next(iter(train_loader), None)
+    assert batch is not None, "Train dataloader batch is empty"
+    assert len(batch) > 0, "Train dataloader batch contains no data"
+    print(f"Sampled Train Batch: {batch}")
 
 
-def test_val_dataloader(magmap_dataset_mocked):
+def test_val_dataloader(magmap):
     print("Testing val_dataloader...")
-    magmap_dataset_mocked.prepare_data()
-    magmap_dataset_mocked.setup()
-    val_loader = magmap_dataset_mocked.val_dataloader()
+    magmap.prepare_data()
+    magmap.setup()
+    val_loader = magmap.val_dataloader()
 
-    for i, batch in enumerate(val_loader):
-        assert batch is not None, f"Batch {i + 1} is empty"
-        assert len(batch) > 0, f"Batch {i + 1} contains no data"
-        print(f"Batch {i + 1}: {batch}")
-        if i == 2:
-            break
+    batch = next(iter(val_loader), None)
+    assert batch is not None, "Validation dataloader batch is empty"
+    assert len(batch) > 0, "Validation dataloader batch contains no data"
+    print(f"Sampled Val Batch: {batch}")
 
 
-def test_test_dataloader(magmap_dataset_mocked):
+def test_test_dataloader(magmap):
     print("Testing test_dataloader...")
-    magmap_dataset_mocked.prepare_data()
-    magmap_dataset_mocked.setup()
-    test_loader = magmap_dataset_mocked.test_dataloader()
+    magmap.prepare_data()
+    magmap.setup()
+    test_loader = magmap.test_dataloader()
 
-    for i, batch in enumerate(test_loader):
-        assert batch is not None, f"Batch {i + 1} is empty"
-        assert len(batch) > 0, f"Batch {i + 1} contains no data"
-        print(f"Batch {i + 1}: {batch}")
-        if i == 2:
-            break
+    batch = next(iter(test_loader), None)
+    assert batch is not None, "Test dataloader batch is empty"
+    assert len(batch) > 0, "Test dataloader batch contains no data"
+    print(f"Sampled Test Batch: {batch}")
+
