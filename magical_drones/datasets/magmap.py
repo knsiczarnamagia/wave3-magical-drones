@@ -2,81 +2,96 @@ import torch
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision.io import read_image
-from torchvision.datasets import ImageFolder
+from PIL import Image
 import torchvision.transforms.v2 as transforms
+from torchvision.transforms.functional import pil_to_tensor
 from pathlib import Path
 from datasets import load_dataset
 
 
 class MagMapDataset(Dataset):
-    def __init__(self, data, transform: transforms.Compose):
+    def __init__(self, data, transforms: transforms.Compose):
         self.data = data
-        self.transform = transform
+        self.transform = transforms
 
     def __len__(self) -> int:
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> tuple[torch.tensor, torch.tensor]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, str]:
         sample = self.data[idx]
 
-        sat_image = (
-            read_image(sample["sat_image"])
-            if isinstance(sample["sat_image"], str)
-            else sample["sat_image"]
-        )
-        map_image = (
-            read_image(sample["map_image"])
-            if isinstance(sample["map_image"], str)
-            else sample["map_image"]
-        )
-        sat_image, map_image = self.transform([sat_image, map_image])
+        sat_image = sample["sat_image"].convert("RGB")
+        map_image = sample["map_image"].convert("RGB")
 
-        return (sat_image, map_image)
+        filename = sample["filename"]
 
+        sat_image = pil_to_tensor(sat_image).float() / 255.0 
+        map_image = pil_to_tensor(map_image).float() / 255.0  
+    
+        if self.transform:
+            sat_image = self.transform(sat_image)
+            map_image = self.transform(map_image)
+
+        return (sat_image, map_image, filename)
+    
 
 class MagMapV1(LightningDataModule):
     def __init__(
         self,
         data_link: str | Path,
-        batch_size: int,
-        train_transform: transforms,
-        test_transform: transforms,
-        data_dir: str | Path = "./data",
+        data_dir: list[str | Path] = ["./data/train", "./data/val", "./data/test"],
+        batch_size: int = 32,
+        train_transform: transforms.Compose = None,
+        val_transform: transforms.Compose = None,
+        test_transform: transforms.Compose = None,
+        split_for_upload: list[str] = ["train[:80%]", "train[80%:90%]", "train[90%:]"],
     ):
         super().__init__()
         self.data_link = data_link
-        self.batch_size = batch_size
-        self.train_transform = train_transform
-        self.test_transform = test_transform
         self.data_dir = data_dir
-        self.data_dict = None
+        self.batch_size = batch_size
+        
+        self.train_transform = train_transform
+        self.val_transform = val_transform
+        self.test_transform = test_transform
+
+        self.split_for_upload = split_for_upload
+        
+        self.train_data_dict = None
+        self.val_data_dict = None
+        self.test_data_dict = None
 
     def prepare_data(self):
-        self.data_dict = load_dataset(self.data_link, cache_dir=self.data_dir)
+        try:
+            self.train_data_dict = load_dataset(self.data_link, 
+                         split=self.split_for_upload[0], 
+                         cache_dir=self.data_dir[0])
+            
+            self.val_data_dict = load_dataset(self.data_link, 
+                         split=self.split_for_upload[1], 
+                         cache_dir=self.data_dir[1])
+            
+            self.test_data_dict = load_dataset(self.data_link, 
+                         split=self.split_for_upload[2], 
+                         cache_dir=self.data_dir[2])
+
+            
+        except Exception as e:
+            raise RuntimeError(f"Failed to load dataset: {e}")
 
     def setup(self, stage: str = None):
-        if not self.data_dict:
-            raise RuntimeError("Data has not been prepared. Call prepare_data() first.")
+        self.train_dataset = MagMapDataset(self.train_data_dict, 
+                                           transforms=self.train_transform)
+        
+        self.val_dataset = MagMapDataset(self.val_data_dict, 
+                                           transforms=self.val_transform)
+        
+        self.test_dataset = MagMapDataset(self.test_data_dict, 
+                                           transforms=self.test_transform)
 
-        data = self.data_dict["train"]
-        total_len = len(data)
-
-        train_len = int(0.8 * total_len)
-        val_len = int(0.1 * total_len)
-        test_len = total_len - train_len - val_len
-
-        train_data, val_data, test_data = random_split(
-            data,
-            [train_len, val_len, test_len],
-            generator=torch.Generator().manual_seed(42),
-        )
-
-        self.train_dataset = MagMapDataset(train_data, transform=self.train_transform)
-        self.val_dataset = MagMapDataset(val_data, transform=self.test_transform)
-        self.test_dataset = MagMapDataset(test_data, transform=self.test_transform)
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self.train_dataset, batch_size=self.batch_size)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
 
     def val_dataloader(self) -> DataLoader:
         return DataLoader(self.val_dataset, batch_size=self.batch_size)
