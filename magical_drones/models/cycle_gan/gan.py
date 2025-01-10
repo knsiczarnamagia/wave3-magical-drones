@@ -15,7 +15,7 @@ class CycleGAN(BaseGAN):
         lr: float = 0.0002,
         b1: float = 0.5,
         b2: float = 0.999,
-        lambda_cycle = 10,
+        lambda_cycle=10,
         **kwargs,
     ):
         super().__init__()
@@ -71,9 +71,7 @@ class CycleGAN(BaseGAN):
         disc_aerial_fake = self.disc_sat(sat_fake)
         disc_map_fake = self.disc_map(map_fake)
 
-        gen_sat_loss = F.mse_loss(
-            disc_aerial_fake, torch.ones_like(disc_aerial_fake)
-        )
+        gen_sat_loss = F.mse_loss(disc_aerial_fake, torch.ones_like(disc_aerial_fake))
         gen_map_loss = F.mse_loss(disc_map_fake, torch.ones_like(disc_map_fake))
 
         # cycle loss
@@ -103,8 +101,16 @@ class CycleGAN(BaseGAN):
         b1 = self.hparams.b1
         b2 = self.hparams.b2
 
-        opt_g = torch.optim.Adam(list(self.gen_sat.parameters()) + list(self.gen_map.parameters()), lr=lr, betas=(b1, b2))
-        opt_d = torch.optim.Adam(list(self.disc_sat.parameters()) + list(self.disc_map.parameters()), lr=lr, betas=(b1, b2))
+        opt_g = torch.optim.Adam(
+            list(self.gen_sat.parameters()) + list(self.gen_map.parameters()),
+            lr=lr,
+            betas=(b1, b2),
+        )
+        opt_d = torch.optim.Adam(
+            list(self.disc_sat.parameters()) + list(self.disc_map.parameters()),
+            lr=lr,
+            betas=(b1, b2),
+        )
         return [opt_g, opt_d], []
 
     def on_validation_epoch_end(self):

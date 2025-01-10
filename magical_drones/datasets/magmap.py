@@ -1,7 +1,6 @@
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader
 from datasets import load_dataset
-from PIL import Image
 from torchvision import transforms
 
 
@@ -16,8 +15,8 @@ class MagMapDataSet(Dataset):
     def __getitem__(self, idx):
         sample = self.data[idx]
         try:
-            sat_image = self.transform(sample["sat_image"].convert('RGB'))
-            map_image = self.transform(sample["map_image"].convert('RGB'))
+            sat_image = self.transform(sample["sat_image"].convert("RGB"))
+            map_image = self.transform(sample["map_image"].convert("RGB"))
         except Exception as e:
             raise ValueError(f"Error loading or transforming image at index {idx}: {e}")
 

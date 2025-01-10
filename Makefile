@@ -18,3 +18,6 @@ format:
 
 check:
 	poetry run ruff format --check .
+
+train:
+	poetry run python -m magical_drones.trainer

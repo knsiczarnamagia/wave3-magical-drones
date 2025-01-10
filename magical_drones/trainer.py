@@ -19,7 +19,9 @@ class TrainerHandler:
 
         file_name = "train_config.yaml"
         config_path = Path("magical_drones/config", file_name)
-        self.data_config, self.model_config, self.training_config = self._parse_arguments(config_path)
+        self.data_config, self.model_config, self.training_config = (
+            self._parse_arguments(config_path)
+        )
         self.model = model(**self.model_config)
         self.datamodule = datamodule(**self.data_config)
 
@@ -27,7 +29,11 @@ class TrainerHandler:
     def _parse_arguments(config_path):
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
-        return config.get("data", None), config.get("model", None), config.get("trainer", None)
+        return (
+            config.get("data", None),
+            config.get("model", None),
+            config.get("trainer", None),
+        )
 
     def training(self):
         trainer = Trainer(logger=self.logger, **self.training_config)
