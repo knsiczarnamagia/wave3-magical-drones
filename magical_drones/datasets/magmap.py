@@ -39,7 +39,7 @@ class MagMapV1(LightningDataModule):
     def __init__(
         self,
         data_link: str | Path,
-        data_dir: list[str | Path] = ["./data/train", "./data/val", "./data/test"],
+        data_dir: str | Path = "./data",
         batch_size: int = 32,
         train_transform: transforms.Compose = None,
         val_transform: transforms.Compose = None,
@@ -70,6 +70,7 @@ class MagMapV1(LightningDataModule):
                     to=self.split_for_upload[0],
                     unit=self.split_for_upload[-1],
                 ),
+                cache_dir=self.data_dir,
             )
 
             self.val_data_dict = load_dataset(
@@ -80,6 +81,7 @@ class MagMapV1(LightningDataModule):
                     to=self.split_for_upload[0] + self.split_for_upload[1],
                     unit=self.split_for_upload[-1],
                 ),
+                cache_dir=self.data_dir,
             )
 
             self.test_data_dict = load_dataset(
@@ -92,6 +94,7 @@ class MagMapV1(LightningDataModule):
                     + self.split_for_upload[2],
                     unit=self.split_for_upload[-1],
                 ),
+                cache_dir=self.data_dir,
             )
 
         except Exception as e:

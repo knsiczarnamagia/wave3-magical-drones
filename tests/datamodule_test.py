@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 from magical_drones.datasets.magmap import MagMapV1
 import torchvision.transforms.v2 as transforms
 from torchvision.transforms.v2 import RandomHorizontalFlip, RandomCrop, Resize, ToTensor
+import structlog
 
 
 @pytest.fixture
@@ -75,10 +76,12 @@ def test_train_dataloader(magmap):
     magmap.setup()
     train_loader = magmap.train_dataloader()
 
+    logger = structlog.get_logger()
+
     batch = next(iter(train_loader), None)
     assert batch is not None, "Train dataloader batch is empty"
     assert len(batch) > 0, "Train dataloader batch contains no data"
-    print(f"Sampled Train Batch: {batch}")
+    logger.info("Sampled Val Batch", batch=batch)
 
 
 def test_val_dataloader(magmap):
@@ -87,10 +90,12 @@ def test_val_dataloader(magmap):
     magmap.setup()
     val_loader = magmap.val_dataloader()
 
+    logger = structlog.get_logger()
+
     batch = next(iter(val_loader), None)
     assert batch is not None, "Validation dataloader batch is empty"
     assert len(batch) > 0, "Validation dataloader batch contains no data"
-    print(f"Sampled Val Batch: {batch}")
+    logger.info("Sampled Val Batch", batch=batch)
 
 
 def test_test_dataloader(magmap):
@@ -99,7 +104,9 @@ def test_test_dataloader(magmap):
     magmap.setup()
     test_loader = magmap.test_dataloader()
 
+    logger = structlog.get_logger()
+
     batch = next(iter(test_loader), None)
     assert batch is not None, "Test dataloader batch is empty"
     assert len(batch) > 0, "Test dataloader batch contains no data"
-    print(f"Sampled Test Batch: {batch}")
+    logger.info("Sampled Val Batch", batch=batch)
