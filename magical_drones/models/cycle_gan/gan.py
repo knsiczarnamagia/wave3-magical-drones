@@ -28,22 +28,19 @@ class CycleGAN(BaseGAN):
 
     def forward(self, z: Tensor) -> Tensor:
         return self.generator(z)
-
-    def training_step(self, batch: Tensor) -> None:
-        sat, map = batch
-        optim_gen, optim_disc = self.optimizers()
-
+    
+    def _train_discriminators(self, sat, map, optim_disc):
         # sat discriminator training
         sat_fake = self.gen_sat(map)
 
-        disc_aerial_real = self.disc_sat(sat)
-        disc_aerial_fake = self.disc_sat(sat_fake.detach())
+        disc_sat_real = self.disc_sat(sat)
+        disc_sat_fake = self.disc_sat(sat_fake.detach())
 
         disc_sat_real_loss = F.mse_loss(
-            disc_aerial_real, torch.ones_like(disc_aerial_real)
+            disc_sat_real, torch.ones_like(disc_sat_real)
         )
         disc_sat_fake_loss = F.mse_loss(
-            disc_aerial_fake, torch.zeros_like(disc_aerial_fake)
+            disc_sat_fake, torch.zeros_like(disc_sat_fake)
         )
 
         disc_sat_loss = disc_sat_real_loss + disc_sat_fake_loss
@@ -66,32 +63,44 @@ class CycleGAN(BaseGAN):
         disc_loss.backward()
         optim_disc.step()
 
+        return disc_loss, sat_fake, map_fake
+
+    def _train_generators(self, sat, map, sat_fake, map_fake, optim_gen):
         # generators training
         # adversarial loss for generators
-        disc_aerial_fake = self.disc_sat(sat_fake)
+        disc_sat_fake = self.disc_sat(sat_fake)
         disc_map_fake = self.disc_map(map_fake)
 
-        gen_sat_loss = F.mse_loss(disc_aerial_fake, torch.ones_like(disc_aerial_fake))
+        gen_sat_loss = F.mse_loss(disc_sat_fake, torch.ones_like(disc_sat_fake))
         gen_map_loss = F.mse_loss(disc_map_fake, torch.ones_like(disc_map_fake))
 
         # cycle loss
         cycle_map = self.gen_map(sat_fake)
-        cycle_aerial = self.gen_sat(map_fake)
+        cycle_sat = self.gen_sat(map_fake)
 
         cycle_map_loss = F.l1_loss(map, cycle_map)
-        cycle_aerial_loss = F.l1_loss(sat, cycle_aerial)
+        cycle_sat_loss = F.l1_loss(sat, cycle_sat)
 
         # put loss together
         gen_loss = (
             gen_map_loss
             + gen_sat_loss
             + cycle_map_loss * self.hparams.lambda_cycle
-            + cycle_aerial_loss * self.hparams.lambda_cycle
+            + cycle_sat_loss * self.hparams.lambda_cycle
         )
 
         optim_gen.zero_grad()
         gen_loss.backward()
         optim_gen.step()
+
+        return gen_loss
+
+    def training_step(self, batch: Tensor) -> None:
+        sat, map = batch
+        optim_gen, optim_disc = self.optimizers()
+        disc_loss, sat_fake, map_fake = self._train_discriminators(sat, map, optim_disc)
+        gen_loss = self._train_generators(sat, map, sat_fake, map_fake, optim_gen)
+        # TODO: logging disc and gen losses
 
     def validation_step(self, batch: Tensor, batch_idx: int) -> None:
         pass

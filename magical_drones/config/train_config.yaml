@@ -11,3 +11,4 @@ data:
   data_link: "czarna-magia/mag-map"
   batch_size: 4
   transform: null # problem with passing transforms in that way
+  num_workers: 8

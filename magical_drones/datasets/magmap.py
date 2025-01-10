@@ -24,11 +24,12 @@ class MagMapDataSet(Dataset):
 
 
 class MagMapV1(LightningDataModule):
-    def __init__(self, data_link, batch_size, transform):
+    def __init__(self, data_link, batch_size, transform, num_workers=0):
         super().__init__()
         self.data_link = data_link
         self.batch_size = batch_size
         self.transform = transform
+        self.num_workers = num_workers
 
     def setup(self, stage: str = None):
         data_dict = load_dataset(self.data_link)
@@ -49,10 +50,10 @@ class MagMapV1(LightningDataModule):
         )
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=8)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=8)
+        return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=8)
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
