@@ -10,8 +10,9 @@ class CycleGAN(BaseGAN):
     def __init__(
         self,
         channels: int = 3,
-        width: int = 224,
-        height: int = 224,
+        num_features: int = 32,
+        num_residuals: int = 2,
+        depth: int = 4,
         lr: float = 0.0002,
         b1: float = 0.5,
         b2: float = 0.999,
@@ -21,14 +22,14 @@ class CycleGAN(BaseGAN):
         super().__init__()
         self.save_hyperparameters()
         self.automatic_optimization = False
-        self.gen_sat = Generator()
-        self.gen_map = Generator()
-        self.disc_sat = Discriminator()
-        self.disc_map = Discriminator()
+        self.gen_sat = Generator(channels, num_features, num_residuals)
+        self.gen_map = Generator(channels, num_features, num_residuals)
+        self.disc_sat = Discriminator(channels, num_features, depth)
+        self.disc_map = Discriminator(channels, num_features, depth)
 
-    def forward(self, z: Tensor) -> Tensor:
-        return self.generator(z)
-    
+    def forward(self, sat: Tensor) -> Tensor:
+        return self.gen_map(sat)
+
     def _train_discriminators(self, sat, map, optim_disc):
         # sat discriminator training
         sat_fake = self.gen_sat(map)
@@ -36,12 +37,8 @@ class CycleGAN(BaseGAN):
         disc_sat_real = self.disc_sat(sat)
         disc_sat_fake = self.disc_sat(sat_fake.detach())
 
-        disc_sat_real_loss = F.mse_loss(
-            disc_sat_real, torch.ones_like(disc_sat_real)
-        )
-        disc_sat_fake_loss = F.mse_loss(
-            disc_sat_fake, torch.zeros_like(disc_sat_fake)
-        )
+        disc_sat_real_loss = F.mse_loss(disc_sat_real, torch.ones_like(disc_sat_real))
+        disc_sat_fake_loss = F.mse_loss(disc_sat_fake, torch.zeros_like(disc_sat_fake))
 
         disc_sat_loss = disc_sat_real_loss + disc_sat_fake_loss
 
@@ -63,10 +60,11 @@ class CycleGAN(BaseGAN):
         disc_loss.backward()
         optim_disc.step()
 
-        return disc_loss, sat_fake, map_fake
+        self.log("disc_loss", disc_loss.item())
+
+        return sat_fake, map_fake
 
     def _train_generators(self, sat, map, sat_fake, map_fake, optim_gen):
-        # generators training
         # adversarial loss for generators
         disc_sat_fake = self.disc_sat(sat_fake)
         disc_map_fake = self.disc_map(map_fake)
@@ -93,14 +91,13 @@ class CycleGAN(BaseGAN):
         gen_loss.backward()
         optim_gen.step()
 
-        return gen_loss
+        self.log("gen_loss", gen_loss.item())
 
     def training_step(self, batch: Tensor) -> None:
         sat, map = batch
         optim_gen, optim_disc = self.optimizers()
-        disc_loss, sat_fake, map_fake = self._train_discriminators(sat, map, optim_disc)
-        gen_loss = self._train_generators(sat, map, sat_fake, map_fake, optim_gen)
-        # TODO: logging disc and gen losses
+        sat_fake, map_fake = self._train_discriminators(sat, map, optim_disc)
+        self._train_generators(sat, map, sat_fake, map_fake, optim_gen)
 
     def validation_step(self, batch: Tensor, batch_idx: int) -> None:
         pass

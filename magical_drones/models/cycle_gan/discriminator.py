@@ -4,15 +4,17 @@ import torch
 
 
 class Discriminator(BaseDiscriminator):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, channels: int = 3, num_features: int = 64, depth: int = 4):
+        super().__init__(channels)
+        self.num_features = num_features
+        self.depth = depth
+        self.features = [num_features * 2**i for i in range(depth)]
         self.model = self._construct_model()
-        self.features = [64, 128, 256, 512]
 
     def _construct_model(self):
         initial_layer = nn.Sequential(
             nn.Conv2d(
-                self.input_channels,
+                self.channels,
                 self.features[0],
                 kernel_size=4,
                 stride=2,

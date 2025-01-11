@@ -1,14 +1,18 @@
 trainer:
-  max_epochs: 1
+  max_epochs: 3
   precision: "bf16-true"
   # accumulate_grad_batches: 4 can't use grad_accumulation with manual optimizers
 model:
-  width: 128
-  height: 128
+  width: 256
+  height: 256
   lr: 0.0003
   lambda_cycle: 10
+  num_features: 64
+  num_residuals: 6
 data:
   data_link: "czarna-magia/mag-map"
   batch_size: 4
-  transform: null # problem with passing transforms in that way
+  # transform: null # problem with passing transforms in that way
   num_workers: 8
+other:
+  use_TF32: true

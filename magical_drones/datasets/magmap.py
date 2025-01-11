@@ -50,10 +50,30 @@ class MagMapV1(LightningDataModule):
         )
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            pin_memory=True,
+        )
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
+        return DataLoader(
+            self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+        )
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
+        return DataLoader(
+            self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+        )
+
+
+augmentations = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomAffine(
+            degrees=10, translate=(0.1, 0.1), scale=(0.8, 1.2), shear=(-5, 5, -5, 5)
+        ),
+    ]
+)
