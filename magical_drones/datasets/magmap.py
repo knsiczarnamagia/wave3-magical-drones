@@ -38,6 +38,9 @@ class MagMapV1(LightningDataModule):
         self.data_link = data_link
         self.batch_size = batch_size
         self.transform = transform
+        self.basic_transform = v2.Compose(
+            [v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]
+        )  # TODO: it looks dirty
         self.num_workers = num_workers
 
     def setup(self, stage: str = None):
@@ -52,10 +55,12 @@ class MagMapV1(LightningDataModule):
             data.select(range(0, train_len)), transform=self.transform
         )
         self.val_dataset = MagMapDataSet(
-            data.select(range(train_len, train_len + val_len)), transform=self.transform
+            data.select(range(train_len, train_len + val_len)),
+            transform=self.basic_transform,
         )
         self.test_dataset = MagMapDataSet(
-            data.select(range(train_len + val_len, total_len)), transform=self.transform
+            data.select(range(train_len + val_len, total_len)),
+            transform=self.basic_transform,
         )
 
     def train_dataloader(self):

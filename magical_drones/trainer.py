@@ -40,7 +40,7 @@ class TrainerHandler:
         checkpoint_callback = ModelCheckpoint(
             monitor="disc_loss",
             dirpath="./checkpoints",
-            filename="model-{epoch:02d}-{disc_loss:.2f}",
+            filename="model{v_num}-{epoch:02d}-{disc_loss:.2f}",
             save_top_k=3,
             mode="min",
             every_n_train_steps=1000,
