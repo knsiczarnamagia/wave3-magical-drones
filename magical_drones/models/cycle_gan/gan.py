@@ -1,6 +1,7 @@
 from torch import Tensor
 import torch
 import torch.nn.functional as F
+from torchvision.utils import make_grid
 from magical_drones.models.base_gan.gan import BaseGAN
 from magical_drones.models.cycle_gan.discriminator import Discriminator
 from magical_drones.models.cycle_gan.generator import Generator
@@ -100,7 +101,13 @@ class CycleGAN(BaseGAN):
         self._train_generators(sat, map, sat_fake, map_fake, optim_gen)
 
     def validation_step(self, batch: Tensor, batch_idx: int) -> None:
-        pass
+        sat, map = batch
+        map_fake = self.gen_map(sat)
+
+        # log_image or add_image?
+        self.logger.experiment.add_image("sat_real", make_grid(sat, nrow=4).to(device='cpu', dtype=torch.float32).numpy())
+        self.logger.experiment.add_image("map_real", make_grid(map, nrow=4).to(device='cpu', dtype=torch.float32).numpy())
+        self.logger.experiment.add_image("map_fake", make_grid(map_fake, nrow=4).to(device='cpu', dtype=torch.float32).numpy())
 
     def configure_optimizers(self):
         lr = self.hparams.lr

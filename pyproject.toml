@@ -15,7 +15,7 @@ torchvision = "^0.17"
 numpy = "<2"
 datasets = "^3.2.0"
 pillow = "^11.0.0"
-tensorboardx = "^2.6.2.2"
+tensorboard = "^2.18.0"
 
 [build-system]
 requires = ["poetry-core"]
