@@ -104,10 +104,18 @@ class CycleGAN(BaseGAN):
         sat, map = batch
         map_fake = self.gen_map(sat)
 
-        # log_image or add_image?
-        self.logger.experiment.add_image("sat_real", make_grid(sat, nrow=4).to(device='cpu', dtype=torch.float32).numpy())
-        self.logger.experiment.add_image("map_real", make_grid(map, nrow=4).to(device='cpu', dtype=torch.float32).numpy())
-        self.logger.experiment.add_image("map_fake", make_grid(map_fake, nrow=4).to(device='cpu', dtype=torch.float32).numpy())
+        self.logger.experiment.add_image(
+            "sat_real",
+            make_grid(sat, nrow=4).to(device="cpu", dtype=torch.float32).numpy(),
+        )
+        self.logger.experiment.add_image(
+            "map_real",
+            make_grid(map, nrow=4).to(device="cpu", dtype=torch.float32).numpy(),
+        )
+        self.logger.experiment.add_image(
+            "map_fake",
+            make_grid(map_fake, nrow=4).to(device="cpu", dtype=torch.float32).numpy(),
+        )
 
     def configure_optimizers(self):
         lr = self.hparams.lr

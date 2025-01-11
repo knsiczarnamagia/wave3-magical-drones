@@ -36,7 +36,7 @@ class TrainerHandler:
             else "highest"  # for Ampere and later (RTX 30 or A100)
         )
 
-    def training(self):
+    def train(self):
         checkpoint_callback = ModelCheckpoint(
             monitor="disc_loss",
             dirpath="./checkpoints",
@@ -57,4 +57,4 @@ class TrainerHandler:
 
 if __name__ == "__main__":
     handler = TrainerHandler(CycleGAN, MagMapV1)
-    handler.training()
+    handler.train()

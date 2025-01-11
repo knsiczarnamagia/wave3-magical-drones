@@ -1,13 +1,20 @@
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader
 from datasets import load_dataset
-from torchvision import transforms
+from torchvision.transforms import v2
+import torch
 
 
 class MagMapDataSet(Dataset):
     def __init__(self, data, transform):
         self.data = data
-        self.transform = transform if transform is not None else transforms.ToTensor()
+        self.transform = (
+            transform
+            if transform is not None
+            else v2.Compose(
+                [v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]
+            )  # equivalent to ToTensor which will be deprecated
+        )
 
     def __len__(self):
         return len(self.data)
@@ -15,8 +22,10 @@ class MagMapDataSet(Dataset):
     def __getitem__(self, idx):
         sample = self.data[idx]
         try:
-            sat_image = self.transform(sample["sat_image"].convert("RGB"))
-            map_image = self.transform(sample["map_image"].convert("RGB"))
+            sat_image, map_image = self.transform(
+                sample["sat_image"].convert("RGB"),
+                sample["map_image"].convert("RGB"),
+            )
         except Exception as e:
             raise ValueError(f"Error loading or transforming image at index {idx}: {e}")
 
@@ -68,11 +77,12 @@ class MagMapV1(LightningDataModule):
         )
 
 
-augmentations = transforms.Compose(
+augmentations = v2.Compose(
     [
-        transforms.ToTensor(),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomAffine(
+        v2.ToImage(),
+        v2.ToDtype(torch.float32, scale=True),
+        v2.RandomHorizontalFlip(),
+        v2.RandomAffine(
             degrees=10, translate=(0.1, 0.1), scale=(0.8, 1.2), shear=(-5, 5, -5, 5)
         ),
     ]
