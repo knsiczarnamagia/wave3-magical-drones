@@ -6,13 +6,13 @@ import torch
 
 
 class MagMapDataSet(Dataset):
-    def __init__(self, data, transform = None):
+    def __init__(self, data, transform=None):
         self.data = data
         self.transform = transform if transform is not None else self._to_tensor()
 
-    def _to_tensor(self): # equivalent to ToTensor which will be deprecated
+    def _to_tensor(self):  # equivalent to ToTensor which will be deprecated
         return v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
-    
+
     def __len__(self):
         return len(self.data)
 
@@ -30,7 +30,14 @@ class MagMapDataSet(Dataset):
 
 
 class MagMapV1(LightningDataModule):
-    def __init__(self, data_link, batch_size, train_transform = None, valid_transform = None, num_workers = 0):
+    def __init__(
+        self,
+        data_link,
+        batch_size,
+        train_transform=None,
+        valid_transform=None,
+        num_workers=0,
+    ):
         super().__init__()
         self.data_link = data_link
         self.batch_size = batch_size

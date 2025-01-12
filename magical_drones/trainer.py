@@ -28,7 +28,9 @@ class TrainerHandler:
         self.other_config = config.get("other", {})
 
         self.model = model_class(**self.model_config)
-        self.datamodule = datamodule_class(**self.data_config, train_transform=augmentations)
+        self.datamodule = datamodule_class(
+            **self.data_config, train_transform=augmentations
+        )
 
         torch.set_float32_matmul_precision(
             "high"
@@ -42,7 +44,7 @@ class TrainerHandler:
             filename="model-{epoch:02d}-{disc_loss:.2f}",
             save_top_k=3,
             every_n_train_steps=100,
-            save_last=True
+            save_last=True,
         )
         trainer = Trainer(
             logger=self.logger, **self.trainer_config, callbacks=[checkpoint_callback]
