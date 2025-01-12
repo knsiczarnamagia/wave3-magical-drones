@@ -1,8 +1,6 @@
 import torch
 from pytorch_lightning import LightningDataModule
-from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision.io import read_image
-from PIL import Image
+from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms.v2 as transforms
 from torchvision.transforms.functional import pil_to_tensor
 from pathlib import Path
@@ -10,9 +8,9 @@ from datasets import load_dataset, ReadInstruction
 
 
 class MagMapDataset(Dataset):
-    def __init__(self, data, transforms: transforms.Compose):
+    def __init__(self, data, transform: transforms.Compose):
         self.data = data
-        self.transform = transforms
+        self.transform = transform
 
     def __len__(self) -> int:
         return len(self.data)
@@ -29,8 +27,10 @@ class MagMapDataset(Dataset):
         map_image = pil_to_tensor(map_image).float() / 255.0
 
         if self.transform:
-            sat_image = self.transform(sat_image)
-            map_image = self.transform(map_image)
+            sat_image, map_image = self.transform(
+                sat_image,
+                map_image,
+            )
 
         return (sat_image, map_image, filename)
 
@@ -40,6 +40,7 @@ class MagMapV1(LightningDataModule):
         self,
         data_link: str | Path,
         data_dir: str | Path = "./data",
+        data_files: str = None,
         batch_size: int = 32,
         train_transform: transforms.Compose = None,
         val_transform: transforms.Compose = None,
@@ -49,6 +50,8 @@ class MagMapV1(LightningDataModule):
         super().__init__()
         self.data_link = data_link
         self.data_dir = data_dir
+        self.data_files = data_files
+
         self.batch_size = batch_size
 
         self.train_transform = train_transform
@@ -61,6 +64,10 @@ class MagMapV1(LightningDataModule):
         self.val_data_dict = None
         self.test_data_dict = None
 
+        self.train_dataset = None
+        self.val_dataset = None
+        self.test_dataset = None
+
     def prepare_data(self):
         try:
             self.train_data_dict = load_dataset(
@@ -70,6 +77,7 @@ class MagMapV1(LightningDataModule):
                     to=self.split_for_upload[0],
                     unit=self.split_for_upload[-1],
                 ),
+                data_files=self.data_files,
                 cache_dir=self.data_dir,
             )
 
@@ -81,6 +89,7 @@ class MagMapV1(LightningDataModule):
                     to=self.split_for_upload[0] + self.split_for_upload[1],
                     unit=self.split_for_upload[-1],
                 ),
+                data_files=self.data_files,
                 cache_dir=self.data_dir,
             )
 
@@ -94,6 +103,7 @@ class MagMapV1(LightningDataModule):
                     + self.split_for_upload[2],
                     unit=self.split_for_upload[-1],
                 ),
+                data_files=self.data_files,
                 cache_dir=self.data_dir,
             )
 
@@ -102,15 +112,15 @@ class MagMapV1(LightningDataModule):
 
     def setup(self, stage: str = None):
         self.train_dataset = MagMapDataset(
-            self.train_data_dict, transforms=self.train_transform
+            self.train_data_dict, transform=self.train_transform
         )
 
         self.val_dataset = MagMapDataset(
-            self.val_data_dict, transforms=self.val_transform
+            self.val_data_dict, transform=self.val_transform
         )
 
         self.test_dataset = MagMapDataset(
-            self.test_data_dict, transforms=self.test_transform
+            self.test_data_dict, transform=self.test_transform
         )
 
     def train_dataloader(self) -> DataLoader:
