@@ -6,16 +6,13 @@ import torch
 
 
 class MagMapDataSet(Dataset):
-    def __init__(self, data, transform):
+    def __init__(self, data, transform = None):
         self.data = data
-        self.transform = (
-            transform
-            if transform is not None
-            else v2.Compose(
-                [v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]
-            )  # equivalent to ToTensor which will be deprecated
-        )
+        self.transform = transform if transform is not None else self._to_tensor()
 
+    def _to_tensor(self): # equivalent to ToTensor which will be deprecated
+        return v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
+    
     def __len__(self):
         return len(self.data)
 
@@ -33,14 +30,12 @@ class MagMapDataSet(Dataset):
 
 
 class MagMapV1(LightningDataModule):
-    def __init__(self, data_link, batch_size, transform, num_workers=0):
+    def __init__(self, data_link, batch_size, train_transform = None, valid_transform = None, num_workers = 0):
         super().__init__()
         self.data_link = data_link
         self.batch_size = batch_size
-        self.transform = transform
-        self.basic_transform = v2.Compose(
-            [v2.ToImage(), v2.ToDtype(torch.float32, scale=True)]
-        )  # TODO: it looks dirty
+        self.train_transform = train_transform
+        self.valid_transform = valid_transform
         self.num_workers = num_workers
 
     def setup(self, stage: str = None):
@@ -52,15 +47,15 @@ class MagMapV1(LightningDataModule):
         val_len = int(0.1 * total_len)
 
         self.train_dataset = MagMapDataSet(
-            data.select(range(0, train_len)), transform=self.transform
+            data.select(range(0, train_len)), transform=self.train_transform
         )
         self.val_dataset = MagMapDataSet(
             data.select(range(train_len, train_len + val_len)),
-            transform=self.basic_transform,
+            transform=self.valid_transform,
         )
         self.test_dataset = MagMapDataSet(
             data.select(range(train_len + val_len, total_len)),
-            transform=self.basic_transform,
+            transform=self.valid_transform,
         )
 
     def train_dataloader(self):
