@@ -10,6 +10,7 @@ import structlog
 @pytest.fixture
 def magmap():
     data_link = "czarna-magia/mag-map"
+    data_files = "data/train-00000-of-00018.parquet"
     split_for_upload = [80, 10, 10, "abs"]
     batch_size = 32
 
@@ -19,7 +20,6 @@ def magmap():
             transforms.ToDtype(torch.float32, scale=True),
             transforms.RandomHorizontalFlip(0.5),
             transforms.RandomRotation(180),
-            transforms.RandomAffine(degrees=30, scale=(0.8, 1.2), shear=10),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
         ]
     )
@@ -42,11 +42,12 @@ def magmap():
 
     return MagMapV1(
         data_link,
+        data_files=data_files,
         batch_size=batch_size,
         train_transform=train_transform,
         val_transform=val_transform,
         test_transform=test_transform,
-        split_for_upload=split_for_upload,
+        # split_for_upload=split_for_upload,
     )
 
 
