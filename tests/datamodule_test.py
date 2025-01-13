@@ -3,7 +3,8 @@ import torch
 from unittest.mock import patch, MagicMock
 from magical_drones.datasets.magmap import MagMapV1
 import torchvision.transforms.v2 as transforms
-from torchvision.transforms.v2 import RandomHorizontalFlip, RandomCrop, Resize, ToTensor
+
+# from torchvision.transforms.v2 import RandomHorizontalFlip, RandomCrop, Resize, ToTensor
 import structlog
 
 
@@ -13,41 +14,14 @@ def magmap():
     data_files = "data/train-00000-of-00018.parquet"
     split_for_upload = [80, 10, 10, "abs"]
     batch_size = 32
-
-    train_transform = transforms.Compose(
-        [
-            transforms.ToTensor(),
-            transforms.ToDtype(torch.float32, scale=True),
-            transforms.RandomHorizontalFlip(0.5),
-            transforms.RandomRotation(180),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-        ]
-    )
-
-    val_transform = transforms.Compose(
-        [
-            transforms.ToTensor(),
-            transforms.ToDtype(torch.float32, scale=True),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-        ]
-    )
-
-    test_transform = transforms.Compose(
-        [
-            transforms.ToTensor(),
-            transforms.ToDtype(torch.float32, scale=True),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-        ]
-    )
+    num_workers = 4
 
     return MagMapV1(
         data_link,
         data_files=data_files,
         batch_size=batch_size,
-        train_transform=train_transform,
-        val_transform=val_transform,
-        test_transform=test_transform,
-        # split_for_upload=split_for_upload,
+        split_for_upload=split_for_upload,
+        num_workers=num_workers,
     )
 
 

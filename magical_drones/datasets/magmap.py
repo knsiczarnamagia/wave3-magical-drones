@@ -21,8 +21,6 @@ class MagMapDataset(Dataset):
         sat_image = sample["sat_image"].convert("RGB")
         map_image = sample["map_image"].convert("RGB")
 
-        filename = sample["filename"]
-
         sat_image = pil_to_tensor(sat_image).float() / 255.0
         map_image = pil_to_tensor(map_image).float() / 255.0
 
@@ -32,7 +30,7 @@ class MagMapDataset(Dataset):
                 map_image,
             )
 
-        return (sat_image, map_image, filename)
+        return (sat_image, map_image)
 
 
 class MagMapV1(LightningDataModule):
@@ -40,11 +38,9 @@ class MagMapV1(LightningDataModule):
         self,
         data_link: str | Path,
         data_dir: str | Path = "./data",
+        num_workers: int = 4,
         data_files: str = None,
         batch_size: int = 32,
-        train_transform: transforms.Compose = None,
-        val_transform: transforms.Compose = None,
-        test_transform: transforms.Compose = None,
         split_for_upload: list[int | str] = [80, 10, 10, "%"],
     ):
         super().__init__()
@@ -53,10 +49,27 @@ class MagMapV1(LightningDataModule):
         self.data_files = data_files
 
         self.batch_size = batch_size
+        self.num_workers = num_workers
 
-        self.train_transform = train_transform
-        self.val_transform = val_transform
-        self.test_transform = test_transform
+        self.train_transform = transforms.Compose(
+            [
+                transforms.RandomHorizontalFlip(0.5),
+                transforms.RandomRotation(180),
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+            ]
+        )
+
+        self.val_transform = transforms.Compose(
+            [
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+            ]
+        )
+
+        self.test_transform = transforms.Compose(
+            [
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+            ]
+        )
 
         self.split_for_upload = split_for_upload
 
@@ -124,10 +137,19 @@ class MagMapV1(LightningDataModule):
         )
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
+        )
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.val_dataset, batch_size=self.batch_size)
+        return DataLoader(
+            self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+        )
 
     def test_dataloader(self) -> DataLoader:
-        return DataLoader(self.test_dataset, batch_size=self.batch_size)
+        return DataLoader(
+            self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+        )
