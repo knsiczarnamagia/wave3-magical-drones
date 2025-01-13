@@ -5,6 +5,8 @@ from torchvision.utils import make_grid
 from magical_drones.models.base_gan.gan import BaseGAN
 from magical_drones.models.cycle_gan.discriminator import Discriminator
 from magical_drones.models.cycle_gan.generator import Generator
+from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
+import wandb
 
 
 class CycleGAN(BaseGAN):
@@ -27,6 +29,9 @@ class CycleGAN(BaseGAN):
         self.gen_map = Generator(channels, num_features, num_residuals)
         self.disc_sat = Discriminator(channels, num_features, depth)
         self.disc_map = Discriminator(channels, num_features, depth)
+        self.val_step_images = 0
+        if isinstance(self.logger, WandbLogger):
+            self.logger.watch(self, log='gradients', log_graph=False)
 
     def forward(self, sat: Tensor) -> Tensor:
         return self.gen_map(sat)
@@ -104,35 +109,46 @@ class CycleGAN(BaseGAN):
         sat, map = batch
         map_fake = self.gen_map(sat)
 
-        self.logger.experiment.add_image(
-            "sat_real",
-            make_grid(sat, nrow=4).to(device="cpu", dtype=torch.float32).numpy(),
-        )
-        self.logger.experiment.add_image(
-            "map_real",
-            make_grid(map, nrow=4).to(device="cpu", dtype=torch.float32).numpy(),
-        )
-        self.logger.experiment.add_image(
-            "map_fake",
-            make_grid(map_fake, nrow=4).to(device="cpu", dtype=torch.float32).numpy(),
-        )
+        images = {
+            "sat_real": make_grid(sat, nrow=4, normalize=True),
+            "map_real": make_grid(map, nrow=4, normalize=True),
+            "map_fake": make_grid(map_fake, nrow=4, normalize=True)
+        }
+        
+        if isinstance(self.logger, WandbLogger):
+            wandb_images = {}
+            for name, img in images.items():
+                wandb_images[name] = wandb.Image(img.to(device='cpu', dtype=torch.float32))
+            self.logger.experiment.log(wandb_images, commit=False)
+
+        if isinstance(self.logger, TensorBoardLogger):
+            for name, img in images.items():
+                self.logger.experiment.add_image(
+                    f"{name}",
+                    img.to(device='cpu', dtype=torch.float32),
+                    global_step=self.current_epoch
+                )
+            self.val_step_images += 1
+
+    def on_validation_epoch_end(self):
+        pass
 
     def configure_optimizers(self):
         lr = self.hparams.lr
         b1 = self.hparams.b1
         b2 = self.hparams.b2
 
+        # TODO: add GradScaler if NaNs appear (but shouldn't with bf16)
         opt_g = torch.optim.Adam(
             list(self.gen_sat.parameters()) + list(self.gen_map.parameters()),
             lr=lr,
             betas=(b1, b2),
+            fused=True
         )
         opt_d = torch.optim.Adam(
             list(self.disc_sat.parameters()) + list(self.disc_map.parameters()),
             lr=lr,
             betas=(b1, b2),
+            fused=True
         )
         return [opt_g, opt_d], []
-
-    def on_validation_epoch_end(self):
-        pass

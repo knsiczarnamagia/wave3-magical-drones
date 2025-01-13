@@ -1,11 +1,11 @@
 import torch
+from torch import nn
 from pathlib import Path
 from pytorch_lightning import Trainer, LightningDataModule, LightningModule
-import os
-import yaml
+import os, yaml
 from magical_drones.models.cycle_gan.gan import CycleGAN
 from magical_drones.datasets.magmap import MagMapV1, augmentations
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning.profilers import SimpleProfiler
 from pytorch_lightning.callbacks import ModelCheckpoint
 
@@ -17,7 +17,8 @@ class TrainerHandler:
         datamodule_class: LightningDataModule,
         config_path: str | Path = Path("magical_drones/config/train_config.yaml"),
     ):
-        self.logger = TensorBoardLogger(save_dir=os.getcwd(), name="lightning_logs")
+        # self.logger = TensorBoardLogger(save_dir=os.getcwd(), name="lightning_logs")
+        self.logger = WandbLogger(save_dir=os.getcwd(), project='magical-drones', log_model=True)
 
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
@@ -42,9 +43,8 @@ class TrainerHandler:
         checkpoint_callback = ModelCheckpoint(
             dirpath="./checkpoints",
             filename="model-{epoch:02d}-{disc_loss:.2f}",
-            save_top_k=3,
-            every_n_train_steps=100,
-            save_last=True,
+            every_n_train_steps=self.other_config.get('checkpoint_interval', 1000),
+            save_last=True
         )
         trainer = Trainer(
             logger=self.logger, **self.trainer_config, callbacks=[checkpoint_callback]

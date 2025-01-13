@@ -37,6 +37,7 @@ class MagMapV1(LightningDataModule):
         train_transform=None,
         valid_transform=None,
         num_workers=0,
+        **kwargs,
     ):
         super().__init__()
         self.data_link = data_link
@@ -70,17 +71,19 @@ class MagMapV1(LightningDataModule):
             self.train_dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
+            shuffle=True,
             pin_memory=True,
+            prefetch_factor=4
         )
 
     def val_dataloader(self):
         return DataLoader(
-            self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+            self.val_dataset, batch_size=self.batch_size*8, num_workers=self.num_workers
         )
 
     def test_dataloader(self):
         return DataLoader(
-            self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+            self.test_dataset, batch_size=self.batch_size*8, num_workers=self.num_workers
         )
 
 
@@ -88,6 +91,7 @@ augmentations = v2.Compose(
     [
         v2.ToImage(),
         v2.ToDtype(torch.float32, scale=True),
+        v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
         v2.RandomHorizontalFlip(),
         v2.RandomAffine(
             degrees=10, translate=(0.1, 0.1), scale=(0.8, 1.2), shear=(-5, 5, -5, 5)
