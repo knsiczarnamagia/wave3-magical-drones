@@ -73,17 +73,21 @@ class MagMapV1(LightningDataModule):
             num_workers=self.num_workers,
             shuffle=True,
             pin_memory=True,
-            prefetch_factor=4
+            prefetch_factor=4,
         )
 
     def val_dataloader(self):
         return DataLoader(
-            self.val_dataset, batch_size=self.batch_size*8, num_workers=self.num_workers
+            self.val_dataset,
+            batch_size=self.batch_size * 8,
+            num_workers=self.num_workers,
         )
 
     def test_dataloader(self):
         return DataLoader(
-            self.test_dataset, batch_size=self.batch_size*8, num_workers=self.num_workers
+            self.test_dataset,
+            batch_size=self.batch_size * 8,
+            num_workers=self.num_workers,
         )
 
 

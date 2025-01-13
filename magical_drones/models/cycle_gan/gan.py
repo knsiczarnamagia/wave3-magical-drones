@@ -31,7 +31,7 @@ class CycleGAN(BaseGAN):
         self.disc_map = Discriminator(channels, num_features, depth)
         self.val_step_images = 0
         if isinstance(self.logger, WandbLogger):
-            self.logger.watch(self, log='gradients', log_graph=False)
+            self.logger.watch(self, log="gradients", log_graph=False)
 
     def forward(self, sat: Tensor) -> Tensor:
         return self.gen_map(sat)
@@ -112,21 +112,23 @@ class CycleGAN(BaseGAN):
         images = {
             "sat_real": make_grid(sat, nrow=4, normalize=True),
             "map_real": make_grid(map, nrow=4, normalize=True),
-            "map_fake": make_grid(map_fake, nrow=4, normalize=True)
+            "map_fake": make_grid(map_fake, nrow=4, normalize=True),
         }
-        
+
         if isinstance(self.logger, WandbLogger):
             wandb_images = {}
             for name, img in images.items():
-                wandb_images[name] = wandb.Image(img.to(device='cpu', dtype=torch.float32))
+                wandb_images[name] = wandb.Image(
+                    img.to(device="cpu", dtype=torch.float32)
+                )
             self.logger.experiment.log(wandb_images, commit=False)
 
         if isinstance(self.logger, TensorBoardLogger):
             for name, img in images.items():
                 self.logger.experiment.add_image(
                     f"{name}",
-                    img.to(device='cpu', dtype=torch.float32),
-                    global_step=self.current_epoch
+                    img.to(device="cpu", dtype=torch.float32),
+                    global_step=self.current_epoch,
                 )
             self.val_step_images += 1
 
@@ -143,12 +145,12 @@ class CycleGAN(BaseGAN):
             list(self.gen_sat.parameters()) + list(self.gen_map.parameters()),
             lr=lr,
             betas=(b1, b2),
-            fused=True
+            fused=True,
         )
         opt_d = torch.optim.Adam(
             list(self.disc_sat.parameters()) + list(self.disc_map.parameters()),
             lr=lr,
             betas=(b1, b2),
-            fused=True
+            fused=True,
         )
         return [opt_g, opt_d], []
