@@ -36,6 +36,7 @@ class MagMapV1(LightningDataModule):
         batch_size,
         train_transform=None,
         valid_transform=None,
+        test_transform=None,
         num_workers=0,
         **kwargs,
     ):
@@ -44,6 +45,7 @@ class MagMapV1(LightningDataModule):
         self.batch_size = batch_size
         self.train_transform = train_transform
         self.valid_transform = valid_transform
+        self.test_transform = test_transform
         self.num_workers = num_workers
 
     def setup(self, stage: str = None):
@@ -63,7 +65,7 @@ class MagMapV1(LightningDataModule):
         )
         self.test_dataset = MagMapDataSet(
             data.select(range(train_len + val_len, total_len)),
-            transform=self.valid_transform,
+            transform=self.test_transform,
         )
 
     def train_dataloader(self):
@@ -91,14 +93,25 @@ class MagMapV1(LightningDataModule):
         )
 
 
-augmentations = v2.Compose(
-    [
-        v2.ToImage(),
-        v2.ToDtype(torch.float32, scale=True),
-        v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-        v2.RandomHorizontalFlip(),
-        v2.RandomAffine(
-            degrees=10, translate=(0.1, 0.1), scale=(0.8, 1.2), shear=(-5, 5, -5, 5)
-        ),
-    ]
-)
+def make_tfms(
+    size: int = 256,
+    degrees: int = 0,
+    translate: tuple[float] | None = None,
+    flip_p: float = 0.0,
+    scale: tuple[float] | None = None,
+    shear: tuple[float] | None = None,
+):
+    return v2.Compose(
+        [
+            v2.ToImage(),
+            v2.Resize(size=size),
+            v2.ToDtype(torch.float32, scale=True),
+            v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+            v2.RandomHorizontalFlip(flip_p) if flip_p > 0 else v2.Identity(),
+            v2.RandomAffine(
+                degrees=degrees, translate=translate, scale=scale, shear=shear
+            )
+            if degrees or translate or scale or shear
+            else v2.Identity(),
+        ]
+    )

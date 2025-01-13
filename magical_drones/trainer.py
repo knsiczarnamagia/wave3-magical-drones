@@ -4,7 +4,7 @@ from pytorch_lightning import Trainer, LightningDataModule, LightningModule
 import os
 import yaml
 from magical_drones.models.cycle_gan.gan import CycleGAN
-from magical_drones.datasets.magmap import MagMapV1, augmentations
+from magical_drones.datasets.magmap import MagMapV1, make_tfms
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.profilers import SimpleProfiler
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -32,7 +32,10 @@ class TrainerHandler:
 
         self.model = model_class(**self.model_config)
         self.datamodule = datamodule_class(
-            **self.data_config, train_transform=augmentations
+            **self.data_config,
+            train_transform=make_tfms(**self.data_config["train_tfms"]),
+            valid_transform=make_tfms(**self.data_config["valid_tfms"]),
+            test_transform=make_tfms(**self.data_config["test_tfms"]),
         )
 
         torch.set_float32_matmul_precision(
