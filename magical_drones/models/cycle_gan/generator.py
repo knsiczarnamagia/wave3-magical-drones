@@ -1,19 +1,22 @@
-from torch import tanh
-from torch import Tensor
+from torch import tanh, Tensor
 import torch.nn as nn
 
 from magical_drones.models.base_gan.generator import BaseGenerator
 
 
 class Generator(BaseGenerator):
-    def __init__(self):
-        super().__init__()
+    def __init__(
+        self, channels: int = 3, num_features: int = 64, num_residuals: int = 6
+    ):
+        super().__init__(channels)
+        self.num_features = num_features
+        self.num_residuals = num_residuals
         self.model = self._construct_model()
 
     def _construct_model(self):
         initial_layer = nn.Sequential(
             nn.Conv2d(
-                self.input_channels,
+                self.channels,
                 self.num_features,
                 kernel_size=7,
                 stride=1,
@@ -41,7 +44,7 @@ class Generator(BaseGenerator):
         )
 
         residual_blocks = nn.Sequential(
-            *[ResidualBlock(self.num_features * 4) for _ in range(self.num_features)]
+            *[ResidualBlock(self.num_features * 4) for _ in range(self.num_residuals)]
         )
 
         up_blocks = nn.Sequential(
@@ -65,22 +68,21 @@ class Generator(BaseGenerator):
             ),
         )
 
-        last_block = nn.Conv2d(
+        last_layer = nn.Conv2d(
             self.num_features,
-            self.input_channels,
+            self.channels,
             kernel_size=7,
             stride=1,
             padding=3,
             padding_mode="reflect",
         )
 
-        model = nn.Sequential(
-            initial_layer, down_blocks, residual_blocks, up_blocks, last_block
+        return nn.Sequential(
+            initial_layer, down_blocks, residual_blocks, up_blocks, last_layer
         )
-        return model
 
-    def forward(self, noise: Tensor) -> Tensor:
-        return tanh(self.model(noise))
+    def forward(self, x: Tensor) -> Tensor:
+        return tanh(self.model(x))
 
 
 class ConvBlock(nn.Module):
