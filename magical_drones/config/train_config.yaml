@@ -1,0 +1,29 @@
+trainer:
+  max_epochs: 10
+  precision: "bf16-true"
+  # accumulate_grad_batches: 4 can't use grad_accumulation with manual optimizers
+  val_check_interval: 100
+  benchmark: true
+model:
+  lr: 0.0003
+  lambda_cycle: 10
+  num_features: 64
+  num_residuals: 6
+data:
+  data_link: "czarna-magia/mag-map"
+  batch_size: 10
+  num_workers: 8
+  train_tfms:
+    size: 256
+    degrees: 10
+    translate: [0.1, 0.1]
+    scale: [0.8, 1.2]
+    shear: [-5, 5, -5, 5]
+  valid_tfms:
+    size: 256
+  test_tfms:
+    size: 256
+
+other:
+  use_TF32: true
+  checkpoint_interval: 500
