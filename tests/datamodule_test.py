@@ -4,7 +4,6 @@ from unittest.mock import patch, MagicMock
 from magical_drones.datasets.magmap import MagMapV1
 import torchvision.transforms.v2 as transforms
 
-# from torchvision.transforms.v2 import RandomHorizontalFlip, RandomCrop, Resize, ToTensor
 import structlog
 
 
