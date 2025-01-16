@@ -8,9 +8,9 @@ from datasets import load_dataset, ReadInstruction
 
 
 class MagMapDataset(Dataset):
-    def __init__(self, data, transform: transforms.Compose):
+    def __init__(self, data, transform):
         self.data = data
-        self.transform = transform
+        self.transform = transform if transform is not None else self._to_tensor()
 
     def __len__(self) -> int:
         return len(self.data)

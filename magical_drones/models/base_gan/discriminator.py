@@ -4,16 +4,10 @@ from torch import nn, Tensor
 
 
 class BaseDiscriminator(ABC, nn.Module):
-    def __init__(
-        self,
-        input_channels: int = 3,
-        features: list = None,
-    ):
+    def __init__(self, channels: int = 3):
         super().__init__()
-        self.input_channels = input_channels
-        if features is None:
-            self.features = [64, 128, 256, 512]
+        self.channels = channels
 
     @abstractmethod
-    def forward(self, z: Tensor) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         pass
