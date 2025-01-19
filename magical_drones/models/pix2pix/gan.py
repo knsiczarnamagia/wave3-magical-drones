@@ -9,11 +9,12 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 from omegaconf import DictConfig
 
+
 class Pix2Pix(BaseGAN):
     def __init__(self, cfg: DictConfig):
         super().__init__()
         self.cfg = cfg.gan
-        self.save_hyperparameters(cfg) # log config from Gen, Disc and GAN
+        self.save_hyperparameters(cfg)  # log config from Gen, Disc and GAN
         self.automatic_optimization = False
         self.generator = Generator(cfg)
         self.discriminator = Discriminator(cfg)
@@ -44,11 +45,15 @@ class Pix2Pix(BaseGAN):
     def _train_generator(self, x: Tensor, y: Tensor, optim_gen):
         y_fake = self.generator(x)
         # `self.global_step` is doubled because it increases after each optim.step() and we have 2
-        lambda_l1 = self.lambda_l1_sched[self.global_step//2] if self.global_step//2 < len(self.lambda_l1_sched) else torch.tensor(1.)
+        lambda_l1 = (
+            self.lambda_l1_sched[self.global_step // 2]
+            if self.global_step // 2 < len(self.lambda_l1_sched)
+            else torch.tensor(1.0)
+        )
 
         disc_fake = self.discriminator(x, y_fake)
         gen_gan_loss = F.mse_loss(disc_fake, torch.ones_like(disc_fake))
-        gen_l1_loss = (F.l1_loss(y_fake, y) * lambda_l1)
+        gen_l1_loss = F.l1_loss(y_fake, y) * lambda_l1
         gen_loss = gen_gan_loss + gen_l1_loss
 
         optim_gen.zero_grad()
@@ -60,9 +65,16 @@ class Pix2Pix(BaseGAN):
 
     def on_train_start(self):
         # create l1_lambda schedule on the start of training
-        steps = len(self.trainer.datamodule.train_dataloader()) * self.trainer.max_epochs
+        steps = (
+            len(self.trainer.datamodule.train_dataloader()) * self.trainer.max_epochs
+        )
         # self.lambda_l1_sched = torch.linspace(self.cfg.lambda_l1, 1, steps) # [LINEAR]
-        self.lambda_l1_sched = 0.5 * (1 + torch.cos(torch.linspace(0, torch.pi, steps))) * (self.cfg.lambda_l1 - 1) + 1 # [COSINE]
+        self.lambda_l1_sched = (
+            0.5
+            * (1 + torch.cos(torch.linspace(0, torch.pi, steps)))
+            * (self.cfg.lambda_l1 - 1)
+            + 1
+        )  # [COSINE]
 
     def training_step(self, batch: Tensor) -> None:
         sat, map = batch
@@ -97,9 +109,15 @@ class Pix2Pix(BaseGAN):
         b2 = self.cfg.b2
 
         opt_g = torch.optim.Adam(
-            self.generator.parameters(), lr=lr, betas=(b1, b2), weight_decay=self.cfg.gen_wd
+            self.generator.parameters(),
+            lr=lr,
+            betas=(b1, b2),
+            weight_decay=self.cfg.gen_wd,
         )
         opt_d = torch.optim.Adam(
-            self.discriminator.parameters(), lr=lr, betas=(b1, b2), weight_decay=self.cfg.disc_wd
+            self.discriminator.parameters(),
+            lr=lr,
+            betas=(b1, b2),
+            weight_decay=self.cfg.disc_wd,
         )
         return [opt_g, opt_d], []

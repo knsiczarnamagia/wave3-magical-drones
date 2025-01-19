@@ -8,8 +8,10 @@ from pytorch_lightning.profilers import SimpleProfiler
 from pytorch_lightning.callbacks import ModelCheckpoint
 from uuid import uuid4
 import hydra
+
 # from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig, OmegaConf
+
 
 class TrainerHandler:
     def __init__(
@@ -21,7 +23,9 @@ class TrainerHandler:
         data_cfg: DictConfig,
     ):
         self.cfg = trainer_cfg
-        self.run_name = self.cfg.get('run_name', f"{model_class.__name__}-{str(uuid4())[:8]}")
+        self.run_name = self.cfg.get(
+            "run_name", f"{model_class.__name__}-{str(uuid4())[:8]}"
+        )
         self.logger = WandbLogger(
             save_dir=os.getcwd(),
             project="magical-drones",
@@ -42,11 +46,18 @@ class TrainerHandler:
             auto_insert_metric_name=False,
             save_last=True,
         )
-        trainer = Trainer(logger=self.logger, **self.cfg.trainer, callbacks=[checkpoint_callback])
+        trainer = Trainer(
+            logger=self.logger, **self.cfg.trainer, callbacks=[checkpoint_callback]
+        )
         trainer.fit(self.model, self.datamodule)
 
     def debug(self):
-        trainer = Trainer(fast_dev_run=True, profiler=SimpleProfiler(dirpath='./checkpoints/', filename='profile', extended=True))
+        trainer = Trainer(
+            fast_dev_run=True,
+            profiler=SimpleProfiler(
+                dirpath="./checkpoints/", filename="profile", extended=True
+            ),
+        )
         trainer.fit(self.model, self.datamodule)
 
 
@@ -54,14 +65,17 @@ class TrainerHandler:
 def main(trainer_cfg: DictConfig):
     model_cfg = OmegaConf.load("conf/models.yaml")
     data_cfg = OmegaConf.load("conf/data.yaml")
-    
+
     handler = TrainerHandler(Pix2Pix, MagMapV1, trainer_cfg, model_cfg, data_cfg)
-    if trainer_cfg.mode == 'train':
+    if trainer_cfg.mode == "train":
         handler.train()
-    elif trainer_cfg.mode == 'debug':
+    elif trainer_cfg.mode == "debug":
         handler.debug()
     else:
-        raise ValueError(f"Invalid mode: {trainer_cfg.mode}. Supported modes are 'train' and 'debug'.")
-    
-if __name__ == '__main__':
+        raise ValueError(
+            f"Invalid mode: {trainer_cfg.mode}. Supported modes are 'train' and 'debug'."
+        )
+
+
+if __name__ == "__main__":
     main()

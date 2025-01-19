@@ -33,11 +33,14 @@ class MagMapDataSet(Dataset):
                 sample["sat_image"].convert("RGB"),
                 sample["map_image"].convert("RGB"),
             )
-            sat_image = self.sat_transform(sat_image) # transform performed only on sat image (color jitter etc.)
+            sat_image = self.sat_transform(
+                sat_image
+            )  # transform performed only on sat image (color jitter etc.)
             sat_image, map_image = self.transform(sat_image, map_image)
         except Exception as e:
             raise ValueError(f"Error loading or transforming image at index {idx}: {e}")
         return sat_image, map_image
+
 
 class MagMapV1(LightningDataModule):
     def __init__(self, cfg: DictConfig):
@@ -98,7 +101,7 @@ class MagMapV1(LightningDataModule):
             batch_size=self.batch_size * 8,
             num_workers=self.num_workers,
             prefetch_factor=self.prefetch_factor,
-            pin_memory=True
+            pin_memory=True,
         )
 
 
@@ -114,10 +117,14 @@ def make_tfms(
         v2.ToImage(),
         v2.Resize(size=size),
         v2.ToDtype(torch.float32, scale=True),  # scale to 0,1
-        v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]) # scale to -1,+1
+        v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  # scale to -1,+1
     ]
     if degrees or translate or scale or shear:
-        tfms.append(v2.RandomAffine(degrees=degrees, translate=translate, scale=scale, shear=shear))
+        tfms.append(
+            v2.RandomAffine(
+                degrees=degrees, translate=translate, scale=scale, shear=shear
+            )
+        )
     if flip_p > 0:
         tfms.append(v2.RandomHorizontalFlip(flip_p))
     return v2.Compose(tfms)
