@@ -10,7 +10,7 @@ from datasets import load_dataset, ReadInstruction
 class MagMapDataset(Dataset):
     def __init__(self, data, transform: transforms.Compose):
         self.data = data
-        self.transform = transform
+        self.transform = transform if transform is not None else self._to_tensor()
 
     def __len__(self) -> int:
         return len(self.data)
@@ -148,7 +148,6 @@ class MagMapV1(LightningDataModule):
         return DataLoader(
             self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers
         )
-
     def test_dataloader(self) -> DataLoader:
         return DataLoader(
             self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers
