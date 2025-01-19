@@ -4,7 +4,9 @@ import torch
 
 
 class Discriminator(BaseDiscriminator):
-    def __init__(self, channels: int = 3, num_features: int = 64, depth: int = 4, **kwargs):
+    def __init__(
+        self, channels: int = 3, num_features: int = 64, depth: int = 4, **kwargs
+    ):
         super().__init__(channels)
         self.num_features = num_features
         self.depth = depth

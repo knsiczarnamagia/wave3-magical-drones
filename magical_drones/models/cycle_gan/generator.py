@@ -6,7 +6,11 @@ from magical_drones.models.base_gan.generator import BaseGenerator
 
 class Generator(BaseGenerator):
     def __init__(
-        self, channels: int = 3, num_features: int = 64, num_residuals: int = 6, **kwargs
+        self,
+        channels: int = 3,
+        num_features: int = 64,
+        num_residuals: int = 6,
+        **kwargs,
     ):
         super().__init__(channels)
         self.num_features = num_features

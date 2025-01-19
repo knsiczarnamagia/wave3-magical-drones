@@ -7,28 +7,16 @@ from magical_drones.models.pix2pix.discriminator import Discriminator
 from magical_drones.models.pix2pix.generator import Generator
 from pytorch_lightning.loggers import WandbLogger
 import wandb
-
+from omegaconf import DictConfig
 
 class Pix2Pix(BaseGAN):
-    def __init__(
-        self,
-        channels: int = 3,
-        num_features: int = 64,
-        num_residuals: int = 9,
-        depth: int = 3,
-        lr: float = 0.0002,
-        b1: float = 0.5,
-        b2: float = 0.999,
-        lambda_l1: float = 100.0,
-        **kwargs,
-    ):
+    def __init__(self, cfg: DictConfig):
         super().__init__()
-        self.save_hyperparameters()
-        self.lambda_l1 = torch.linspace(lambda_l1, 1, 10_000) # TODO: num of steps based on n_epochs*len(dataloader)
+        self.cfg = cfg.gan
+        self.save_hyperparameters(cfg) # log config from Gen, Disc and GAN
         self.automatic_optimization = False
-        self.generator = Generator(channels, num_features, num_residuals, depth)
-        self.discriminator = Discriminator(channels, num_features, depth)
-        self.val_step_images = 0
+        self.generator = Generator(cfg)
+        self.discriminator = Discriminator(cfg)
 
         if isinstance(self.logger, WandbLogger):
             self.logger.watch(self, log="gradients", log_graph=False)
@@ -55,10 +43,12 @@ class Pix2Pix(BaseGAN):
 
     def _train_generator(self, x: Tensor, y: Tensor, optim_gen):
         y_fake = self.generator(x)
+        # `self.global_step` is doubled because it increases after each optim.step() and we have 2
+        lambda_l1 = self.lambda_l1_sched[self.global_step//2] if self.global_step//2 < len(self.lambda_l1_sched) else torch.tensor(1.)
 
         disc_fake = self.discriminator(x, y_fake)
-        gen_gan_loss = F.mse_loss(disc_fake, torch.ones_like(disc_fake)) # GAN loss
-        gen_l1_loss = F.l1_loss(y_fake, y) * self.lambda_l1[self.global_step] # L1 loss TODO: add lambda schedule? slow transition to only GAN loss (it would let model to create sharp edges?)
+        gen_gan_loss = F.mse_loss(disc_fake, torch.ones_like(disc_fake))
+        gen_l1_loss = (F.l1_loss(y_fake, y) * lambda_l1)
         gen_loss = gen_gan_loss + gen_l1_loss
 
         optim_gen.zero_grad()
@@ -66,6 +56,13 @@ class Pix2Pix(BaseGAN):
         optim_gen.step()
 
         self.log("gen_loss", gen_loss.item())
+        self.log("l1_lambda", lambda_l1.item())
+
+    def on_train_start(self):
+        # create l1_lambda schedule on the start of training
+        steps = len(self.trainer.datamodule.train_dataloader()) * self.trainer.max_epochs
+        # self.lambda_l1_sched = torch.linspace(self.cfg.lambda_l1, 1, steps) # [LINEAR]
+        self.lambda_l1_sched = 0.5 * (1 + torch.cos(torch.linspace(0, torch.pi, steps))) * (self.cfg.lambda_l1 - 1) + 1 # [COSINE]
 
     def training_step(self, batch: Tensor) -> None:
         sat, map = batch
@@ -86,17 +83,23 @@ class Pix2Pix(BaseGAN):
         if isinstance(self.logger, WandbLogger):
             wandb_images = {}
             for name, img in images.items():
-                wandb_images[name] = wandb.Image(img.to(device="cpu", dtype=torch.float32))
+                wandb_images[name] = wandb.Image(
+                    img.to(device="cpu", dtype=torch.float32)
+                )
             self.logger.experiment.log(wandb_images)
 
     def on_validation_epoch_end(self):
         pass
 
     def configure_optimizers(self):
-        lr = self.hparams.lr
-        b1 = self.hparams.b1
-        b2 = self.hparams.b2
+        lr = self.cfg.lr
+        b1 = self.cfg.b1
+        b2 = self.cfg.b2
 
-        opt_g = torch.optim.Adam(self.generator.parameters(), lr=lr, betas=(b1, b2), weight_decay=0.05)
-        opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2), weight_decay=0.1)
+        opt_g = torch.optim.Adam(
+            self.generator.parameters(), lr=lr, betas=(b1, b2), weight_decay=self.cfg.gen_wd
+        )
+        opt_d = torch.optim.Adam(
+            self.discriminator.parameters(), lr=lr, betas=(b1, b2), weight_decay=self.cfg.disc_wd
+        )
         return [opt_g, opt_d], []

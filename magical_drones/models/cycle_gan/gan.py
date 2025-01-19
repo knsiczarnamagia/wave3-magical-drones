@@ -123,7 +123,7 @@ class CycleGAN(BaseGAN):
                 wandb_images[name] = wandb.Image(
                     img.to(device="cpu", dtype=torch.float32)
                 )
-            self.logger.experiment.log(wandb_images, commit=False) # TODO
+            self.logger.experiment.log(wandb_images, commit=False)  # TODO
 
         if isinstance(self.logger, TensorBoardLogger):
             for name, img in images.items():

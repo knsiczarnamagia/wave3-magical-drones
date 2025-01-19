@@ -1,71 +1,67 @@
 import torch
-from pathlib import Path
 from pytorch_lightning import Trainer, LightningDataModule, LightningModule
 import os
-import yaml
-# from magical_drones.models.cycle_gan.gan import CycleGAN
 from magical_drones.models.pix2pix.gan import Pix2Pix
-from magical_drones.datasets.magmap import MagMapV1, make_tfms
+from magical_drones.datasets.magmap import MagMapV1
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.profilers import SimpleProfiler
 from pytorch_lightning.callbacks import ModelCheckpoint
 from uuid import uuid4
-
+import hydra
+# from hydra.core.global_hydra import GlobalHydra
+from omegaconf import DictConfig, OmegaConf
 
 class TrainerHandler:
     def __init__(
         self,
         model_class: LightningModule,
         datamodule_class: LightningDataModule,
-        config_path: str | Path = Path("magical_drones/config/train_config.yaml"),
+        trainer_cfg: DictConfig,
+        model_cfg: DictConfig,
+        data_cfg: DictConfig,
     ):
-        # self.logger = TensorBoardLogger(save_dir=os.getcwd(), name="lightning_logs")
+        self.cfg = trainer_cfg
+        self.run_name = self.cfg.get('run_name', f"{model_class.__name__}-{str(uuid4())[:8]}")
         self.logger = WandbLogger(
-            save_dir=os.getcwd(), project="magical-drones", log_model=True
+            save_dir=os.getcwd(),
+            project="magical-drones",
+            name=self.run_name,
+            log_model=True,
         )
-
-        with open(config_path, "r") as file:
-            config = yaml.safe_load(file)
-
-        self.data_config = config.get("data", {})
-        self.model_config = config.get("model", {})
-        self.trainer_config = config.get("trainer", {})
-        self.other_config = config.get("other", {})
-
-        self.model = model_class(**self.model_config)
-        self.model_class_name = model_class.__class__.__name__
-        self.datamodule = datamodule_class(
-            **self.data_config,
-            train_transform=make_tfms(**self.data_config["train_tfms"]),
-            valid_transform=make_tfms(**self.data_config["valid_tfms"]),
-            test_transform=make_tfms(**self.data_config["test_tfms"]),
-        )
+        self.model = model_class(model_cfg)
+        self.datamodule = datamodule_class(data_cfg)
 
         torch.set_float32_matmul_precision(
-            "high"
-            if self.other_config.get("use_TF32", False)
-            else "highest"  # for Ampere and later (RTX 30 or A100)
+            "high" if self.cfg.get("use_TF32", False) else "highest"
         )
 
     def train(self):
         checkpoint_callback = ModelCheckpoint(
-            dirpath=f"./checkpoints/{self.model_class_name}-{str(uuid4())[:8]}",
+            dirpath=f"./checkpoints/{self.run_name}",
             filename="{epoch}epoch",
             auto_insert_metric_name=False,
             save_last=True,
         )
-        trainer = Trainer(
-            logger=self.logger, **self.trainer_config, callbacks=[checkpoint_callback]
-        )
+        trainer = Trainer(logger=self.logger, **self.cfg.trainer, callbacks=[checkpoint_callback])
         trainer.fit(self.model, self.datamodule)
-        trainer.logger.version
 
     def debug(self):
-        trainer = Trainer(fast_dev_run=True, profiler=SimpleProfiler())
+        trainer = Trainer(fast_dev_run=True, profiler=SimpleProfiler(dirpath='./checkpoints/', filename='profile', extended=True))
         trainer.fit(self.model, self.datamodule)
 
 
-if __name__ == "__main__":
-    # handler = TrainerHandler(CycleGAN, MagMapV1)
-    handler = TrainerHandler(Pix2Pix, MagMapV1)
-    handler.train()
+@hydra.main(version_base=None, config_path="../conf", config_name="trainer")
+def main(trainer_cfg: DictConfig):
+    model_cfg = OmegaConf.load("conf/models.yaml")
+    data_cfg = OmegaConf.load("conf/data.yaml")
+    
+    handler = TrainerHandler(Pix2Pix, MagMapV1, trainer_cfg, model_cfg, data_cfg)
+    if trainer_cfg.mode == 'train':
+        handler.train()
+    elif trainer_cfg.mode == 'debug':
+        handler.debug()
+    else:
+        raise ValueError(f"Invalid mode: {trainer_cfg.mode}. Supported modes are 'train' and 'debug'.")
+    
+if __name__ == '__main__':
+    main()
