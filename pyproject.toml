@@ -1,7 +1,6 @@
 [tool.poetry]
 name = "magical-drones"
-version = "0.4.2"
-version = "0.4.2"
+version = "0.4.3"
 description = ""
 authors = ["Czarna magia <czarnamagiaknsi@gmail.com>"]
 readme = "README.md"
@@ -16,6 +15,7 @@ torchvision = "^0.17"
 numpy = "<2"
 datasets = "^3.2.0"
 pillow = "^11.0.0"
+structlog = "^24.4.0"
 
 [build-system]
 requires = ["poetry-core"]
