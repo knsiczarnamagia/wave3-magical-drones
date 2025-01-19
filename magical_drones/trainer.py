@@ -3,11 +3,13 @@ from pathlib import Path
 from pytorch_lightning import Trainer, LightningDataModule, LightningModule
 import os
 import yaml
-from magical_drones.models.cycle_gan.gan import CycleGAN
+# from magical_drones.models.cycle_gan.gan import CycleGAN
+from magical_drones.models.pix2pix.gan import Pix2Pix
 from magical_drones.datasets.magmap import MagMapV1, make_tfms
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.profilers import SimpleProfiler
 from pytorch_lightning.callbacks import ModelCheckpoint
+from uuid import uuid4
 
 
 class TrainerHandler:
@@ -31,6 +33,7 @@ class TrainerHandler:
         self.other_config = config.get("other", {})
 
         self.model = model_class(**self.model_config)
+        self.model_class_name = model_class.__class__.__name__
         self.datamodule = datamodule_class(
             **self.data_config,
             train_transform=make_tfms(**self.data_config["train_tfms"]),
@@ -46,9 +49,9 @@ class TrainerHandler:
 
     def train(self):
         checkpoint_callback = ModelCheckpoint(
-            dirpath="./checkpoints",
-            filename="model-{epoch:02d}-{disc_loss:.2f}",
-            every_n_train_steps=self.other_config.get("checkpoint_interval", 1000),
+            dirpath=f"./checkpoints/{self.model_class_name}-{str(uuid4())[:8]}",
+            filename="{epoch}epoch",
+            auto_insert_metric_name=False,
             save_last=True,
         )
         trainer = Trainer(
@@ -63,5 +66,6 @@ class TrainerHandler:
 
 
 if __name__ == "__main__":
-    handler = TrainerHandler(CycleGAN, MagMapV1)
+    # handler = TrainerHandler(CycleGAN, MagMapV1)
+    handler = TrainerHandler(Pix2Pix, MagMapV1)
     handler.train()

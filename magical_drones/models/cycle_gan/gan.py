@@ -108,9 +108,11 @@ class CycleGAN(BaseGAN):
     def validation_step(self, batch: Tensor, batch_idx: int) -> None:
         sat, map = batch
         map_fake = self.gen_map(sat)
+        sat_fake = self.gen_sat(map)
 
         images = {
             "sat_real": make_grid(sat, nrow=4, normalize=True),
+            "sat_fake": make_grid(sat_fake, nrow=4, normalize=True),
             "map_real": make_grid(map, nrow=4, normalize=True),
             "map_fake": make_grid(map_fake, nrow=4, normalize=True),
         }
@@ -121,7 +123,7 @@ class CycleGAN(BaseGAN):
                 wandb_images[name] = wandb.Image(
                     img.to(device="cpu", dtype=torch.float32)
                 )
-            self.logger.experiment.log(wandb_images, commit=False)
+            self.logger.experiment.log(wandb_images, commit=False) # TODO
 
         if isinstance(self.logger, TensorBoardLogger):
             for name, img in images.items():

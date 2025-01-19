@@ -6,12 +6,13 @@ import torch
 
 
 class MagMapDataSet(Dataset):
-    def __init__(self, data, transform=None):
+    def __init__(self, data, transform=None, sat_transform=None):
         self.data = data
         self.transform = transform if transform is not None else self._to_tensor()
+        self.sat_transform = sat_transform if sat_transform is not None else v2.Identity()
 
-    def _to_tensor(self):  # equivalent to ToTensor which will be deprecated
-        return v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
+    def _to_tensor(self):
+        return v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True), v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])])
 
     def __len__(self):
         return len(self.data)
@@ -19,10 +20,9 @@ class MagMapDataSet(Dataset):
     def __getitem__(self, idx):
         sample = self.data[idx]
         try:
-            sat_image, map_image = self.transform(
-                sample["sat_image"].convert("RGB"),
-                sample["map_image"].convert("RGB"),
-            )
+            sat_image, map_image = sample["sat_image"].convert("RGB"), sample["map_image"].convert("RGB")
+            sat_image = self.sat_transform(sat_image)
+            sat_image, map_image = self.transform(sat_image, map_image)
         except Exception as e:
             raise ValueError(f"Error loading or transforming image at index {idx}: {e}")
 
@@ -57,7 +57,7 @@ class MagMapV1(LightningDataModule):
         val_len = int(0.1 * total_len)
 
         self.train_dataset = MagMapDataSet(
-            data.select(range(0, train_len)), transform=self.train_transform
+            data.select(range(0, train_len)), transform=self.train_transform, sat_transform=sat_tfms
         )
         self.val_dataset = MagMapDataSet(
             data.select(range(train_len, train_len + val_len)),
@@ -73,9 +73,9 @@ class MagMapV1(LightningDataModule):
             self.train_dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            shuffle=True,
+            # shuffle=True,
             pin_memory=True,
-            prefetch_factor=4,
+            prefetch_factor=8,
         )
 
     def val_dataloader(self):
@@ -83,6 +83,7 @@ class MagMapV1(LightningDataModule):
             self.val_dataset,
             batch_size=self.batch_size * 8,
             num_workers=self.num_workers,
+            prefetch_factor=8,
         )
 
     def test_dataloader(self):
@@ -90,6 +91,7 @@ class MagMapV1(LightningDataModule):
             self.test_dataset,
             batch_size=self.batch_size * 8,
             num_workers=self.num_workers,
+            prefetch_factor=8,
         )
 
 
@@ -105,8 +107,8 @@ def make_tfms(
         [
             v2.ToImage(),
             v2.Resize(size=size),
-            v2.ToDtype(torch.float32, scale=True),
-            v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+            v2.ToDtype(torch.float32, scale=True), # scale to 0,1
+            v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]), # scale -1,+1
             v2.RandomHorizontalFlip(flip_p) if flip_p > 0 else v2.Identity(),
             v2.RandomAffine(
                 degrees=degrees, translate=translate, scale=scale, shear=shear
@@ -115,3 +117,8 @@ def make_tfms(
             else v2.Identity(),
         ]
     )
+
+sat_tfms = v2.Compose([
+    v2.ColorJitter(brightness=(.5, 1.5), contrast=(.5, 1.5), saturation=(.5, 1.5)),
+    v2.RandomAdjustSharpness(1.5, p=0.5)
+])
