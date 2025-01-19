@@ -152,3 +152,26 @@ class MagMapV1(LightningDataModule):
         return DataLoader(
             self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers
         )
+
+def make_tfms(
+    size: int = 256,
+    degrees: int = 0,
+    translate: tuple[float] | None = None,
+    flip_p: float = 0.0,
+    scale: tuple[float] | None = None,
+    shear: tuple[float] | None = None,
+):
+    return v2.Compose(
+        [
+            v2.ToImage(),
+            v2.Resize(size=size),
+            v2.ToDtype(torch.float32, scale=True),
+            v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+            v2.RandomHorizontalFlip(flip_p) if flip_p > 0 else v2.Identity(),
+            v2.RandomAffine(
+                degrees=degrees, translate=translate, scale=scale, shear=shear
+            )
+            if degrees or translate or scale or shear
+            else v2.Identity(),
+        ]
+    )
