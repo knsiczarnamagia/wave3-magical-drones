@@ -55,7 +55,7 @@ class Generator(BaseGenerator):
             out_channels = self.cfg.num_features * 2 ** (d - 1)
             decoder_layers.append(
                 nn.Sequential(
-                    nn.ConvTranspose2d(
+                    nn.ConvTranspose2d( # overlap in transposed conv can cause checkerboard artifacts
                         in_channels,
                         out_channels,
                         kernel_size=4,

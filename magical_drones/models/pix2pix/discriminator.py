@@ -29,6 +29,15 @@ class Discriminator(BaseDiscriminator):
                     nn.BatchNorm2d(out_channels) if i > 0 else nn.Identity(),
                     nn.LeakyReLU(0.2, inplace=True),
                     nn.Dropout(p=self.cfg.dropout),
+                    nn.Conv2d(
+                        out_channels,
+                        out_channels,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=False,
+                    ),
+                    nn.BatchNorm2d(out_channels),
                 )
             )
             in_channels = out_channels

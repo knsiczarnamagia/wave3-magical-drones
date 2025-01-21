@@ -14,13 +14,13 @@ class Pix2Pix(BaseGAN):
     def __init__(self, cfg: DictConfig):
         super().__init__()
         self.cfg = cfg.gan
-        self.save_hyperparameters(cfg)  # log config from Gen, Disc and GAN
+        # self.save_hyperparameters(cfg)  # already done in TrainerHandler
         self.automatic_optimization = False
         self.generator = Generator(cfg)
         self.discriminator = Discriminator(cfg)
 
         if isinstance(self.logger, WandbLogger):
-            self.logger.watch(self, log="gradients", log_graph=False)
+            self.logger.watch(self, log="all", log_graph=False)
 
     def forward(self, x: Tensor) -> Tensor:
         return self.generator(x)
@@ -84,6 +84,7 @@ class Pix2Pix(BaseGAN):
 
     def validation_step(self, batch: Tensor, batch_idx: int) -> None:
         sat, map = batch
+        sat, map = sat[:32], map[:32]  # first 32 images because more isn't readable
         map_fake = self.generator(sat)
 
         images = {
