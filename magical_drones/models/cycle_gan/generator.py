@@ -1,27 +1,19 @@
 from torch import tanh, Tensor
 import torch.nn as nn
-
+from omegaconf import DictConfig
 from magical_drones.models.base_gan.generator import BaseGenerator
 
-
 class Generator(BaseGenerator):
-    def __init__(
-        self,
-        channels: int = 3,
-        num_features: int = 64,
-        num_residuals: int = 6,
-        **kwargs,
-    ):
-        super().__init__(channels)
-        self.num_features = num_features
-        self.num_residuals = num_residuals
+    def __init__(self, cfg: DictConfig):
+        super().__init__(cfg.channels)
+        self.cfg = cfg
         self.model = self._construct_model()
 
     def _construct_model(self):
         initial_layer = nn.Sequential(
             nn.Conv2d(
-                self.channels,
-                self.num_features,
+                self.cfg.channels,
+                self.cfg.num_features,
                 kernel_size=7,
                 stride=1,
                 padding=3,
@@ -32,15 +24,15 @@ class Generator(BaseGenerator):
 
         down_blocks = nn.Sequential(
             ConvBlock(
-                self.num_features,
-                self.num_features * 2,
+                self.cfg.num_features,
+                self.cfg.num_features * 2,
                 kernel_size=3,
                 stride=2,
                 padding=1,
             ),
             ConvBlock(
-                self.num_features * 2,
-                self.num_features * 4,
+                self.cfg.num_features * 2,
+                self.cfg.num_features * 4,
                 kernel_size=3,
                 stride=2,
                 padding=1,
@@ -48,13 +40,13 @@ class Generator(BaseGenerator):
         )
 
         residual_blocks = nn.Sequential(
-            *[ResidualBlock(self.num_features * 4) for _ in range(self.num_residuals)]
+            *[ResidualBlock(self.cfg.num_features * 4) for _ in range(self.cfg.num_residuals)]
         )
 
         up_blocks = nn.Sequential(
             ConvBlock(
-                self.num_features * 4,
-                self.num_features * 2,
+                self.cfg.num_features * 4,
+                self.cfg.num_features * 2,
                 down=False,
                 kernel_size=3,
                 stride=2,
@@ -62,8 +54,8 @@ class Generator(BaseGenerator):
                 output_padding=1,
             ),
             ConvBlock(
-                self.num_features * 2,
-                self.num_features,
+                self.cfg.num_features * 2,
+                self.cfg.num_features,
                 down=False,
                 kernel_size=3,
                 stride=2,
@@ -73,8 +65,8 @@ class Generator(BaseGenerator):
         )
 
         last_layer = nn.Conv2d(
-            self.num_features,
-            self.channels,
+            self.cfg.num_features,
+            self.cfg.channels,
             kernel_size=7,
             stride=1,
             padding=3,
@@ -88,11 +80,8 @@ class Generator(BaseGenerator):
     def forward(self, x: Tensor) -> Tensor:
         return tanh(self.model(x))
 
-
 class ConvBlock(nn.Module):
-    def __init__(
-        self, in_channels, out_channels, down=True, use_activation=True, **kwargs
-    ):
+    def __init__(self, in_channels, out_channels, down=True, use_activation=True, **kwargs):
         super().__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, padding_mode="reflect", **kwargs)
@@ -105,15 +94,12 @@ class ConvBlock(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         return self.conv(x)
 
-
 class ResidualBlock(nn.Module):
     def __init__(self, channels: int):
         super().__init__()
         self.block = nn.Sequential(
             ConvBlock(channels, channels, kernel_size=3, padding=1),
-            ConvBlock(
-                channels, channels, use_activation=False, kernel_size=3, padding=1
-            ),
+            ConvBlock(channels, channels, use_activation=False, kernel_size=3, padding=1),
         )
 
     def forward(self, x: Tensor) -> Tensor:

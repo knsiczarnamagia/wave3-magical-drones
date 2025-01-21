@@ -84,6 +84,7 @@ class MagMapV1(LightningDataModule):
             prefetch_factor=self.prefetch_factor,
             shuffle=True,
             pin_memory=True,
+            # persistent_workers=True,  # Keep workers alive
         )
 
     def val_dataloader(self):
@@ -112,6 +113,7 @@ def make_tfms(
     flip_p: float = 0.0,
     scale: tuple[float] | None = None,
     shear: tuple[float] | None = None,
+    channel_shuffle: bool = False
 ):
     tfms = [
         v2.ToImage(),
@@ -127,6 +129,8 @@ def make_tfms(
         )
     if flip_p > 0:
         tfms.append(v2.RandomHorizontalFlip(flip_p))
+    if channel_shuffle:
+        tfms.append(v2.RandomChannelPermutation())
     return v2.Compose(tfms)
 
 

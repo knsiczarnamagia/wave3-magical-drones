@@ -1,16 +1,13 @@
 from magical_drones.models.base_gan.discriminator import BaseDiscriminator
 from torch import nn, Tensor
 import torch
-
+from omegaconf import DictConfig
 
 class Discriminator(BaseDiscriminator):
-    def __init__(
-        self, channels: int = 3, num_features: int = 64, depth: int = 4, **kwargs
-    ):
-        super().__init__(channels)
-        self.num_features = num_features
-        self.depth = depth
-        self.features = [num_features * 2**i for i in range(depth)]
+    def __init__(self, cfg: DictConfig):
+        super().__init__(cfg.channels)
+        self.cfg = cfg
+        self.features = [cfg.num_features * 2**i for i in range(cfg.depth)]
         self.model = self._construct_model()
 
     def _construct_model(self):
@@ -50,21 +47,13 @@ class Discriminator(BaseDiscriminator):
             )
         )
 
-        model = nn.Sequential(initial_layer, *layers)
-
-        return model
+        return nn.Sequential(initial_layer, *layers)
 
     def forward(self, x: Tensor) -> Tensor:
         return torch.sigmoid(self.model(x))
 
-
 class ConvBlock(nn.Module):
-    def __init__(
-        self,
-        in_channels: int,
-        out_channels: int,
-        stride: int,
-    ):
+    def __init__(self, in_channels: int, out_channels: int, stride: int):
         super().__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(

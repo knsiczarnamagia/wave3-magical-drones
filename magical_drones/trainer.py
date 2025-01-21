@@ -1,15 +1,15 @@
 import torch
 from pytorch_lightning import Trainer, LightningDataModule, LightningModule
 import os
-from magical_drones.models.pix2pix.gan import Pix2Pix
+from magical_drones.models.pix2pix2.gan import Pix2Pix2
+from magical_drones.models.cycle_gan.gan import CycleGAN
 from magical_drones.datasets.magmap import MagMapV1
 from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.profilers import SimpleProfiler
+from pytorch_lightning.profilers import PyTorchProfiler
 from pytorch_lightning.callbacks import ModelCheckpoint
 from uuid import uuid4
 import hydra
-
-# from hydra.core.global_hydra import GlobalHydra
+import wandb
 from omegaconf import DictConfig, OmegaConf
 
 
@@ -22,8 +22,10 @@ class TrainerHandler:
         model_cfg: DictConfig,
         data_cfg: DictConfig,
     ):
-        self.cfg = trainer_cfg
-        self.run_name = self.cfg.get(
+        self.trainer_cfg = trainer_cfg
+        self.model_cfg = model_cfg
+        self.data_cfg = data_cfg
+        self.run_name = self.trainer_cfg.get(
             "run_name", f"{model_class.__name__}-{str(uuid4())[:8]}"
         )
         self.logger = WandbLogger(
@@ -36,10 +38,11 @@ class TrainerHandler:
         self.datamodule = datamodule_class(data_cfg)
 
         torch.set_float32_matmul_precision(
-            "high" if self.cfg.get("use_TF32", False) else "highest"
+            "high" if self.trainer_cfg.get("use_TF32", False) else "highest"
         )
 
     def train(self):
+        self.logger.log_hyperparams({**self.trainer_cfg, **self.model_cfg, **self.data_cfg})
         checkpoint_callback = ModelCheckpoint(
             dirpath=f"./checkpoints/{self.run_name}",
             filename="{epoch}epoch",
@@ -47,16 +50,24 @@ class TrainerHandler:
             save_last=True,
         )
         trainer = Trainer(
-            logger=self.logger, **self.cfg.trainer, callbacks=[checkpoint_callback]
+            logger=self.logger, **self.trainer_cfg.trainer, callbacks=[checkpoint_callback]
         )
         trainer.fit(self.model, self.datamodule)
 
     def debug(self):
+        debug_profiler = PyTorchProfiler(
+            dirpath="./profiler",
+            filename="profile",
+            profile_memory=True,
+            record_shapes=True,
+            with_stack=True,
+            export_to_chrome=True
+        )
         trainer = Trainer(
-            fast_dev_run=True,
-            profiler=SimpleProfiler(
-                dirpath="./checkpoints/", filename="profile", extended=True
-            ),
+            max_steps=5,
+            profiler=debug_profiler,
+            limit_train_batches=2,
+            num_sanity_val_steps=1
         )
         trainer.fit(self.model, self.datamodule)
 
@@ -66,7 +77,7 @@ def main(trainer_cfg: DictConfig):
     model_cfg = OmegaConf.load("conf/models.yaml")
     data_cfg = OmegaConf.load("conf/data.yaml")
 
-    handler = TrainerHandler(Pix2Pix, MagMapV1, trainer_cfg, model_cfg, data_cfg)
+    handler = TrainerHandler(CycleGAN, MagMapV1, trainer_cfg, model_cfg, data_cfg)
     if trainer_cfg.mode == "train":
         handler.train()
     elif trainer_cfg.mode == "debug":
