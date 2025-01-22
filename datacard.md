@@ -18,19 +18,14 @@
 
 ## Dataset Description
 
-  
-
 -  **Homepage:** https://huggingface.co/datasets/czarna-magia/mag-map
 
 -  **Repository:** https://github.com/knsiczarnamagia/wave3-magical-drones
 
 -  **Point of Contact:** [KNSI Czarna Magia](https://discord.com/invite/aVTeDfreSD)
-
-  
+-  
 
 ### Dataset Summary
-
-  
 
 This dataset consists of 16,000 pairs (32,000 total files) of topological images and corresponding vector map images of Polish cities. File names' structure: `{city}_cell_{number}.jpg` (e.g., `warszawa_cell_1.jpg`).
 
@@ -46,16 +41,14 @@ This dataset card was created as one of the WAVE3 obligatory project requirement
 
 ## Dataset Structure
 
-
 ### Data Instances
-
-  
+```javascript  
 {
   sat_image: "localhost:8080/sat/warszawa_cell_1.jpg",
   map_image: "localhost:8080/map/warszawa_cell_1.jpg",
   name: "warszawa_cell_1.jpg"
 }
-
+```
   
 ### Data Fields 
 
@@ -63,22 +56,15 @@ This dataset card was created as one of the WAVE3 obligatory project requirement
 - map_image: a jpg image
 - name: a string
 
-  
-### Data Splits
-
-
-[Needs More Information]
-
-
 ## Dataset Creation
 
 
-### Curation Rationale
+### Creation Rationale
 
 The dataset was created to supply an ML model in a student project, "Magiczne Drony." It required a pair of images because our solution is meant to create a map output from a satellite input. Our supervisor suggested QGIS as a great source of data because of existing plug-ins, shapefile vectors, and a built-in console for scripts to automate the process.
   
 
-#### Initial Data Collection and Normalization
+### Initial Data Collection and Normalization
 
 The data was collected by following these steps:
 
@@ -99,7 +85,6 @@ The data was collected by following these steps:
 
 ### Licensing Information
 
-  
 
 MIT License
 
