@@ -2,31 +2,14 @@ from pytorch_lightning import LightningModule
 
 from abc import ABC, abstractmethod
 from torch import Tensor
-from torch.functional import F
 
 
 class BaseGAN(ABC, LightningModule):
-    def __init__(
-        self,
-        channels: int = 3,
-        width: int = 224,
-        height: int = 224,
-        latent_dim: int = 100,
-        lr: float = 0.0002,
-        b1: float = 0.5,
-        b2: float = 0.999,
-        **kwargs,
-    ):
+    def __init__(self):
         super().__init__()
-        self.save_hyperparameters(
-            channels, width, height, latent_dim, lr, b1, b2, kwargs
-        )
-
-    def adversarial_loss(self, y_hat: Tensor, y: Tensor) -> Tensor:
-        return F.binary_cross_entropy(y_hat, y)
 
     @abstractmethod
-    def forward(self, z: Tensor) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         pass
 
     @abstractmethod
