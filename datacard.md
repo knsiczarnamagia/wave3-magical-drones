@@ -36,7 +36,7 @@ The dataset was created using the [QGIS](https://www.qgis.org) software with:
 
 This collection is suitable for applications in geographic information systems, urban analysis, and machine learning tasks involving spatial data.
 
-This dataset card was created as one of the WAVE3 obligatory project requirements, as the dataset is part of the KNSI "Czarna Magia" project.
+This dataset card was created to fulfill one of the WAVE3 obligatory project requirements, as the dataset is part of the Czarna Magia Student Artificial Intelligence Society's project.
 
 
 ## Dataset Structure
