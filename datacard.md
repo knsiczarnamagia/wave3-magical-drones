@@ -60,7 +60,7 @@ This dataset card was created to fulfill one of the WAVE3 obligatory project req
 
 The data was gathered through the following steps:
 
-1. Import shapefile vectors of Polish voivodeships from the [Geofabrik portal].(https://download.geofabrik.de/europe.html) into [QGIS](https://www.qgis.org)
+1. Import shapefile vectors of Polish voivodeships from the [Geofabrik portal](https://download.geofabrik.de/europe.html) into [QGIS](https://www.qgis.org)
 2. Create a grid overlay on the selected city to prevent crashes during processing.
 3. Use the first script from [our repository](https://github.com/knsiczarnamagia/wave3-magical-drones) at `./datagen/step1.py` to:
     - Standardize styles, coordinate system, and layers.
