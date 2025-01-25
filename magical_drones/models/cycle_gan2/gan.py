@@ -60,6 +60,13 @@ class CycleGAN2(BaseGAN):
         l1_loss = F.l1_loss(map_fake, map) + F.l1_loss(sat_fake, sat) # pixel-wise L1 loss (from Pix2Pix)
         gen_loss += l1_loss * self.cfg.lambda_l1
 
+        identity_sat = self.gen_sat(sat)
+        identity_map = self.gen_map(map)
+        identity_sat_loss = F.l1_loss(sat, identity_sat )
+        identity_map_loss = F.l1_loss(map, identity_map )
+
+        gen_loss += identity_sat_loss * self.cfg.lambda_identity + identity_map_loss * self.cfg.lambda_identity
+
         optim_gen.zero_grad()
         gen_loss.backward()
         optim_gen.step()
