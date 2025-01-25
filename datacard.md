@@ -66,7 +66,7 @@ The dataset was created to supply an ML model in a student project, "Magiczne Dr
 
 ### Initial Data Collection and Normalization
 
-The data was collected by following these steps:
+The data was gathered through the following steps:
 
 - Importing shapefile vectors of Polish voivodeships from the [Geofabrik portal](https://download.geofabrik.de/europe.html) into [QGIS](https://www.qgis.org)
 - Creating a grid over a selected city to prevent the program from crashing
