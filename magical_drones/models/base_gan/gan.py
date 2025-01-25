@@ -27,3 +27,6 @@ class BaseGAN(ABC, LightningModule):
     @abstractmethod
     def on_validation_epoch_end(self):
         pass
+
+    def on_train_epoch_end(self):
+        self.log("epoch", self.current_epoch) # for wandb last 3 checkpoint saving (using epoch as metric hack)
