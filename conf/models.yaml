@@ -12,8 +12,8 @@ generator:
   depth: 4
 gan:
   lambda_cycle: 10
-  # lambda_identity: 5.0 # typically 0.5 * lambda_cycle
-  lambda_l1: 10
+  lambda_identity: 5.0 # typically 0.5 * lambda_cycle
+  lambda_l1: 0
   lambda_adv: 1
   lr_g: 2.0e-4
   lr_d: 5.0e-5
