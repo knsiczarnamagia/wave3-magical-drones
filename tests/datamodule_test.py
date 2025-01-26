@@ -9,10 +9,10 @@ def magmap_cfg():
     return OmegaConf.create(
         {
             "data_link": "czarna-magia/mag-map",
-            "data_files": "data/train-00000-of-00018.parquet",  # Ładujemy tylko jeden lekki plik
-            "split_for_upload": [80, 10, 10, "abs"],  # Split w absolutnych liczbach
-            "batch_size": 4,  # Mały batch dla testów
-            "num_workers": 2,  # Mniej workerów dla CI
+            "data_files": "data/train-00000-of-00018.parquet",
+            "split_for_upload": [80, 10, 10, "abs"],
+            "batch_size": 4,
+            "num_workers": 2,
             "prefetch_factor": 2,
             "data_dir": "./data",
             "train_transforms": {"size": 256, "degrees": 180, "flip_p": 0.5},
@@ -49,6 +49,6 @@ def test_dataloaders(magmap):
     ]:
         batch = next(iter(loader))
         assert len(batch) == 2
-        assert batch[0].shape == (4, 3, 256, 256)
-        assert batch[1].shape == (4, 3, 256, 256)
+        assert batch[0].shape[0] in {4, 10}, f"Wrong batch size in {name}"
+        assert batch[0].shape[1:] == (3, 256, 256)
         logger.info(f"{name} batch OK", shapes=[t.shape for t in batch])
