@@ -1,86 +1,54 @@
 import pytest
-import torch
-from unittest.mock import patch, MagicMock
+from omegaconf import OmegaConf
 from magical_drones.datasets.magmap import MagMapV1
-import torchvision.transforms.v2 as transforms
-
 import structlog
 
 
 @pytest.fixture
-def magmap():
-    data_link = "czarna-magia/mag-map"
-    data_files = "data/train-00000-of-00018.parquet"
-    split_for_upload = [80, 10, 10, "abs"]
-    batch_size = 32
-    num_workers = 4
-
-    return MagMapV1(
-        data_link,
-        data_files=data_files,
-        batch_size=batch_size,
-        split_for_upload=split_for_upload,
-        num_workers=num_workers,
+def magmap_cfg():
+    return OmegaConf.create(
+        {
+            "data_link": "czarna-magia/mag-map",
+            "data_files": "data/train-00000-of-00018.parquet",
+            "split_for_upload": [80, 10, 10, "abs"],
+            "batch_size": 4,
+            "num_workers": 2,
+            "prefetch_factor": 2,
+            "data_dir": "./data",
+            "train_transforms": {"size": 256, "degrees": 180, "flip_p": 0.5},
+            "valid_transforms": {"size": 256},
+            "test_transforms": {"size": 256},
+        }
     )
 
 
-def test_prepare_data(magmap):
-    print("Preparing data...")
-    magmap.prepare_data()
-    assert magmap.train_data_dict is not None, "The train data has not been uploaded."
-    assert (
-        magmap.val_data_dict is not None
-    ), "The validation data has not been uploaded."
-    assert magmap.test_data_dict is not None, "The test data has not been uploaded."
+@pytest.fixture
+def magmap(magmap_cfg):
+    dm = MagMapV1(magmap_cfg)
+    dm.setup()
+    return dm
 
 
 def test_setup_datasets(magmap):
-    print("Setting up datasets...")
-    magmap.prepare_data()
-    magmap.setup()
+    assert magmap.train_dataset is not None
+    assert magmap.val_dataset is not None
+    assert magmap.test_dataset is not None
+    print("\nDataset sizes:")
+    print(f"Train: {len(magmap.train_dataset)}")
+    print(f"Val: {len(magmap.val_dataset)}")
+    print(f"Test: {len(magmap.test_dataset)}")
 
-    assert magmap.train_dataset is not None, "Train dataset not created"
-    assert magmap.val_dataset is not None, "Validation dataset not created"
-    assert magmap.test_dataset is not None, "Test dataset not created"
 
-
-def test_train_dataloader(magmap):
-    print("Testing train_dataloader...")
-    magmap.prepare_data()
-    magmap.setup()
-    train_loader = magmap.train_dataloader()
-
+def test_dataloaders(magmap):
     logger = structlog.get_logger()
 
-    batch = next(iter(train_loader), None)
-    assert batch is not None, "Train dataloader batch is empty"
-    assert len(batch) > 0, "Train dataloader batch contains no data"
-    logger.info("Sampled Val Batch", batch=batch)
-
-
-def test_val_dataloader(magmap):
-    print("Testing val_dataloader...")
-    magmap.prepare_data()
-    magmap.setup()
-    val_loader = magmap.val_dataloader()
-
-    logger = structlog.get_logger()
-
-    batch = next(iter(val_loader), None)
-    assert batch is not None, "Validation dataloader batch is empty"
-    assert len(batch) > 0, "Validation dataloader batch contains no data"
-    logger.info("Sampled Val Batch", batch=batch)
-
-
-def test_test_dataloader(magmap):
-    print("Testing test_dataloader...")
-    magmap.prepare_data()
-    magmap.setup()
-    test_loader = magmap.test_dataloader()
-
-    logger = structlog.get_logger()
-
-    batch = next(iter(test_loader), None)
-    assert batch is not None, "Test dataloader batch is empty"
-    assert len(batch) > 0, "Test dataloader batch contains no data"
-    logger.info("Sampled Val Batch", batch=batch)
+    for name, loader in [
+        ("Train", magmap.train_dataloader()),
+        ("Val", magmap.val_dataloader()),
+        ("Test", magmap.test_dataloader()),
+    ]:
+        batch = next(iter(loader))
+        assert len(batch) == 2
+        assert batch[0].shape[0] in {4, 10}, f"Wrong batch size in {name}"
+        assert batch[0].shape[1:] == (3, 256, 256)
+        logger.info(f"{name} batch OK", shapes=[t.shape for t in batch])

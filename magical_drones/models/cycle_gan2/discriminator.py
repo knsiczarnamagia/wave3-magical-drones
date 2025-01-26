@@ -8,7 +8,7 @@ class Discriminator(BaseDiscriminator):
     def __init__(self, cfg: DictConfig):
         super().__init__(cfg.channels)
         self.cfg = cfg
-        self.features = [cfg.num_features * 2**i for i in range(cfg.depth)]
+        self.features = [self.cfg.num_features * 2**i for i in range(self.cfg.depth)]
         self.model = self._construct_model()
 
     def _construct_model(self):

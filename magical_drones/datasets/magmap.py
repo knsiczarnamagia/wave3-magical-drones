@@ -1,157 +1,124 @@
-import torch
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader
-import torchvision.transforms.v2 as transforms
-from torchvision.transforms.functional import pil_to_tensor
-from pathlib import Path
-from datasets import load_dataset, ReadInstruction
+from datasets import load_dataset
+from torchvision.transforms import v2
+import torch
+from omegaconf import DictConfig
 
 
-class MagMapDataset(Dataset):
-    def __init__(self, data, transform: transforms.Compose):
+class MagMapDataSet(Dataset):
+    def __init__(self, data, transform=None, sat_transform=None):
         self.data = data
         self.transform = transform if transform is not None else self._to_tensor()
+        self.sat_transform = (
+            sat_transform if sat_transform is not None else v2.Identity()
+        )
 
-    def __len__(self) -> int:
+    def _to_tensor(self):
+        return v2.Compose(
+            [
+                v2.ToImage(),
+                v2.ToDtype(torch.float32, scale=True),
+                v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+            ]
+        )
+
+    def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, str]:
+    def __getitem__(self, idx):
         sample = self.data[idx]
-
-        sat_image = sample["sat_image"].convert("RGB")
-        map_image = sample["map_image"].convert("RGB")
-
-        sat_image = pil_to_tensor(sat_image).float() / 255.0
-        map_image = pil_to_tensor(map_image).float() / 255.0
-
-        if self.transform:
-            sat_image, map_image = self.transform(
-                sat_image,
-                map_image,
+        try:
+            sat_image, map_image = (
+                sample["sat_image"].convert("RGB"),
+                sample["map_image"].convert("RGB"),
             )
-
-        return (sat_image, map_image)
+            sat_image = self.sat_transform(
+                sat_image
+            )  # transform performed only on sat image (color jitter etc.)
+            sat_image, map_image = self.transform(sat_image, map_image)
+        except Exception as e:
+            raise ValueError(f"Error processing sample {idx}: {e}")
+        return sat_image, map_image
 
 
 class MagMapV1(LightningDataModule):
-    def __init__(
-        self,
-        data_link: str | Path,
-        data_dir: str | Path = "./data",
-        num_workers: int = 4,
-        data_files: str = None,
-        batch_size: int = 32,
-        split_for_upload: list[int | str] = [80, 10, 10, "%"],
-    ):
+    def __init__(self, cfg: DictConfig):
         super().__init__()
-        self.data_link = data_link
-        self.data_dir = data_dir
-        self.data_files = data_files
+        self.cfg = cfg
+        self.data_link = cfg.data_link
+        self.data_files = cfg.get("data_files")
+        self.data_dir = cfg.get("data_dir", "./data")
+        self.split_for_upload = cfg.get("split_for_upload", [80, 10, 10, "%"])
+        self.batch_size = cfg.batch_size
+        self.num_workers = cfg.get("num_workers", 4)
+        self.prefetch_factor = cfg.get("prefetch_factor", 2)
 
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-
-        self.train_transform = transforms.Compose(
-            [
-                transforms.RandomHorizontalFlip(0.5),
-                transforms.RandomRotation(180),
-                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-            ]
-        )
-
-        self.val_transform = transforms.Compose(
-            [
-                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-            ]
-        )
-
-        self.test_transform = transforms.Compose(
-            [
-                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-            ]
-        )
-
-        self.split_for_upload = split_for_upload
-
-        self.train_data_dict = None
-        self.val_data_dict = None
-        self.test_data_dict = None
-
-        self.train_dataset = None
-        self.val_dataset = None
-        self.test_dataset = None
-
-    def prepare_data(self):
-        try:
-            self.train_data_dict = load_dataset(
-                self.data_link,
-                split=ReadInstruction(
-                    "train",
-                    to=self.split_for_upload[0],
-                    unit=self.split_for_upload[-1],
-                ),
-                data_files=self.data_files,
-                cache_dir=self.data_dir,
-            )
-
-            self.val_data_dict = load_dataset(
-                self.data_link,
-                split=ReadInstruction(
-                    "train",
-                    from_=self.split_for_upload[0],
-                    to=self.split_for_upload[0] + self.split_for_upload[1],
-                    unit=self.split_for_upload[-1],
-                ),
-                data_files=self.data_files,
-                cache_dir=self.data_dir,
-            )
-
-            self.test_data_dict = load_dataset(
-                self.data_link,
-                split=ReadInstruction(
-                    "train",
-                    from_=self.split_for_upload[0] + self.split_for_upload[1],
-                    to=self.split_for_upload[0]
-                    + self.split_for_upload[1]
-                    + self.split_for_upload[2],
-                    unit=self.split_for_upload[-1],
-                ),
-                data_files=self.data_files,
-                cache_dir=self.data_dir,
-            )
-
-        except Exception as e:
-            raise RuntimeError(f"Failed to load dataset: {e}")
+        self.train_transform = make_tfms(**cfg.train_transforms)
+        self.valid_transform = make_tfms(**cfg.valid_transforms)
+        self.test_transform = make_tfms(**cfg.test_transforms)
 
     def setup(self, stage: str = None):
-        self.train_dataset = MagMapDataset(
-            self.train_data_dict, transform=self.train_transform
+        data_dict = load_dataset(
+            self.data_link,
+            data_files=self.data_files,
+            cache_dir=self.data_dir,
+        )
+        data = data_dict["train"]
+
+        split_train, split_val, split_test, unit = self.split_for_upload
+        total_len = len(data)
+
+        if unit == "%":
+            train_len = int(split_train / 100 * total_len)
+            val_len = int(split_val / 100 * total_len)
+        else:
+            train_len = split_train
+            val_len = split_val
+
+        test_len = total_len - train_len - val_len
+        assert train_len + val_len + test_len == total_len, "Invalid split"
+
+        self.train_dataset = MagMapDataSet(
+            data.select(range(0, train_len)),
+            transform=self.train_transform,
+            sat_transform=sat_tfms,
+        )
+        self.val_dataset = MagMapDataSet(
+            data.select(range(train_len, train_len + val_len)),
+            transform=self.valid_transform,
+        )
+        self.test_dataset = MagMapDataSet(
+            data.select(range(train_len + val_len, total_len)),
+            transform=self.test_transform,
         )
 
-        self.val_dataset = MagMapDataset(
-            self.val_data_dict, transform=self.val_transform
-        )
-
-        self.test_dataset = MagMapDataset(
-            self.test_data_dict, transform=self.test_transform
-        )
-
-    def train_dataloader(self) -> DataLoader:
+    def train_dataloader(self):
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
-            shuffle=True,
             num_workers=self.num_workers,
+            prefetch_factor=self.prefetch_factor,
+            shuffle=True,
+            pin_memory=True,
         )
 
-    def val_dataloader(self) -> DataLoader:
+    def val_dataloader(self):
         return DataLoader(
-            self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+            self.val_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            prefetch_factor=self.prefetch_factor,
+            pin_memory=True,
         )
 
-    def test_dataloader(self) -> DataLoader:
+    def test_dataloader(self):
         return DataLoader(
-            self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+            self.test_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            prefetch_factor=self.prefetch_factor,
+            pin_memory=True,
         )
 
 
@@ -162,20 +129,32 @@ def make_tfms(
     flip_p: float = 0.0,
     scale: tuple[float] | None = None,
     shear: tuple[float] | None = None,
+    channel_shuffle: bool = False,
 ):
-    return transforms.Compose(
-        [
-            transforms.ToImage(),
-            transforms.Resize(size=size),
-            transforms.ToDtype(torch.float32, scale=True),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-            transforms.RandomHorizontalFlip(flip_p)
-            if flip_p > 0
-            else transforms.Identity(),
-            transforms.RandomAffine(
+    tfms = [
+        v2.ToImage(),
+        v2.Resize(size=size),
+        v2.ToDtype(torch.float32, scale=True),
+        v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+    ]
+    if degrees or translate or scale or shear:
+        tfms.append(
+            v2.RandomAffine(
                 degrees=degrees, translate=translate, scale=scale, shear=shear
             )
-            if degrees or translate or scale or shear
-            else transforms.Identity(),
-        ]
-    )
+        )
+    if flip_p > 0:
+        tfms.append(v2.RandomHorizontalFlip(flip_p))
+    if channel_shuffle:
+        tfms.append(v2.RandomChannelPermutation())
+    return v2.Compose(tfms)
+
+
+sat_tfms = v2.Compose(
+    [
+        v2.ColorJitter(
+            brightness=(0.5, 1.5), contrast=(0.5, 1.5), saturation=(0.5, 1.5)
+        ),
+        v2.RandomAdjustSharpness(1.5, p=0.5),
+    ]
+)
