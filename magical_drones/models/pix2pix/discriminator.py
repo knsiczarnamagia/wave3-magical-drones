@@ -6,8 +6,8 @@ from omegaconf import DictConfig
 
 class Discriminator(BaseDiscriminator):
     def __init__(self, cfg: DictConfig):
-        super().__init__(cfg.discriminator.channels)
-        self.cfg = cfg.discriminator
+        super().__init__(cfg.channels)
+        self.cfg = cfg
         self.model = self._construct_model()
 
     def _construct_model(self):
@@ -52,7 +52,7 @@ class Discriminator(BaseDiscriminator):
         # noise injection
         mean, std = 0.0, self.cfg.noise_std
         with torch.no_grad():
-            map = +(torch.randn_like(map) + mean) * std
+            map = map + (torch.randn_like(map) + mean) * std
 
         xy = torch.cat([sat, map], dim=1)
         return self.model(xy)

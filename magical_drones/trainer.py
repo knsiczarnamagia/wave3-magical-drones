@@ -1,7 +1,8 @@
 import torch
 from pytorch_lightning import Trainer, LightningDataModule, LightningModule
 import os
-# from magical_drones.models.pix2pix2.gan import Pix2Pix2
+
+# from magical_drones.models.pix2pix.gan import Pix2Pix
 from magical_drones.models.cycle_gan2.gan import CycleGAN2
 from magical_drones.datasets.magmap import MagMapV1
 from pytorch_lightning.loggers import WandbLogger
@@ -9,7 +10,6 @@ from pytorch_lightning.profilers import PyTorchProfiler
 from pytorch_lightning.callbacks import ModelCheckpoint
 from uuid import uuid4
 import hydra
-import wandb
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
 
@@ -39,26 +39,36 @@ class TrainerHandler:
     def train(self):
         self.logger = WandbLogger(
             save_dir=os.getcwd(),
-            project="test",
+            project="magical-drones",
             name=self.run_name,
             log_model="all",
         )
-        wandb.init() # it gives warning that W&B is already intialized but without it wandb.save() doesn't work
-        wandb.save(Path('magical_drones/models/*/*.py'), policy='now') # save code snapshot 
+        self.logger.experiment.save(
+            Path("magical_drones/models/*/*.py"), policy="now"
+        )  # save code snapshot
 
         model_classname = self.model.__class__.__name__
         self.checkpoint_callback = ModelCheckpoint(
             dirpath=Path(f"./checkpoints/{self.run_name}"),
-            filename=model_classname+"-{epoch}ep",
+            filename=model_classname + "-{epoch}ep",
             auto_insert_metric_name=False,
             monitor="epoch",
             mode="max",
             save_top_k=3,
-            save_last=True
+            save_last=True,
         )
-        self.logger.log_hyperparams({**self.trainer_cfg, **self.model_cfg, **self.data_cfg, 'model_class': model_classname})
-        trainer = Trainer(  
-            logger=self.logger, **self.trainer_cfg.trainer, callbacks=[self.checkpoint_callback]
+        self.logger.log_hyperparams(
+            {
+                **self.trainer_cfg,
+                **self.model_cfg,
+                **self.data_cfg,
+                "model_class": model_classname,
+            }
+        )
+        trainer = Trainer(
+            logger=self.logger,
+            **self.trainer_cfg.trainer,
+            callbacks=[self.checkpoint_callback],
         )
         trainer.fit(self.model, self.datamodule)
 
@@ -69,13 +79,13 @@ class TrainerHandler:
             profile_memory=True,
             record_shapes=True,
             with_stack=True,
-            export_to_chrome=True
+            export_to_chrome=True,
         )
         trainer = Trainer(
             max_steps=5,
             profiler=debug_profiler,
             limit_train_batches=2,
-            num_sanity_val_steps=1
+            num_sanity_val_steps=1,
         )
         trainer.fit(self.model, self.datamodule)
 

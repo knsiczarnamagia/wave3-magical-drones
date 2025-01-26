@@ -5,8 +5,8 @@ from omegaconf import DictConfig
 
 class Generator(BaseGenerator):
     def __init__(self, cfg: DictConfig):
-        super().__init__(cfg.generator.channels)
-        self.cfg = cfg.generator
+        super().__init__(cfg.channels)
+        self.cfg = cfg
         self.model = self._construct_model()
 
     def _construct_model(self):
@@ -55,7 +55,7 @@ class Generator(BaseGenerator):
             out_channels = self.cfg.num_features * 2 ** (d - 1)
             decoder_layers.append(
                 nn.Sequential(
-                    nn.ConvTranspose2d( # overlap in transposed conv can cause checkerboard artifacts
+                    nn.ConvTranspose2d(  # overlap in transposed conv can cause checkerboard artifacts
                         in_channels,
                         out_channels,
                         kernel_size=4,
@@ -78,7 +78,7 @@ class Generator(BaseGenerator):
                 padding=1,
                 bias=False,
             ),
-            nn.Tanh(),  # Ensure output is in the range [-1, 1]
+            nn.Tanh(),
         )
 
         return nn.Sequential(

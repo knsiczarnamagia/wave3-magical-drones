@@ -3,6 +3,7 @@ from torch import nn, Tensor
 import torch
 from omegaconf import DictConfig
 
+
 class Discriminator(BaseDiscriminator):
     def __init__(self, cfg: DictConfig):
         super().__init__(cfg.channels)
@@ -51,6 +52,7 @@ class Discriminator(BaseDiscriminator):
 
     def forward(self, x: Tensor) -> Tensor:
         return torch.sigmoid(self.model(x))
+
 
 class ConvBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, stride: int):

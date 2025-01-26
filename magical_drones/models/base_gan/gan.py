@@ -29,4 +29,6 @@ class BaseGAN(ABC, LightningModule):
         pass
 
     def on_train_epoch_end(self):
-        self.log("epoch", self.current_epoch) # for wandb last 3 checkpoint saving (using epoch as metric hack)
+        self.log(
+            "epoch", self.current_epoch
+        )  # for wandb last 3 checkpoint saving (using epoch as metric hack)

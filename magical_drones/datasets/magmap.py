@@ -113,7 +113,7 @@ def make_tfms(
     flip_p: float = 0.0,
     scale: tuple[float] | None = None,
     shear: tuple[float] | None = None,
-    channel_shuffle: bool = False
+    channel_shuffle: bool = False,
 ):
     tfms = [
         v2.ToImage(),

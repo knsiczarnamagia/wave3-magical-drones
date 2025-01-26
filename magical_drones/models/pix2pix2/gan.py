@@ -10,7 +10,7 @@ import wandb
 from omegaconf import DictConfig
 
 
-class Pix2Pix(BaseGAN):
+class Pix2Pix2(BaseGAN):
     def __init__(self, cfg: DictConfig):
         super().__init__()
         self.cfg = cfg.gan
@@ -19,7 +19,7 @@ class Pix2Pix(BaseGAN):
         self.discriminator = Discriminator(cfg.discriminator)
 
         if isinstance(self.logger, WandbLogger):
-            self.logger.watch(self, log="all", log_graph=False)
+            self.logger.watch(self, log="gradients", log_graph=False)
 
     def forward(self, x: Tensor) -> Tensor:
         return self.generator(x)
@@ -67,13 +67,15 @@ class Pix2Pix(BaseGAN):
         steps = (
             len(self.trainer.datamodule.train_dataloader()) * self.trainer.max_epochs
         )
-        # self.lambda_l1_sched = torch.linspace(self.cfg.lambda_l1, 1, steps) # [LINEAR]
-        self.lambda_l1_sched = (
-            0.5
-            * (1 + torch.cos(torch.linspace(0, torch.pi, steps)))
-            * (self.cfg.lambda_l1 - 1)
-            + 1
-        )  # [COSINE]
+        self.lambda_l1_sched = torch.linspace(self.cfg.lambda_l1, 1, steps)  # [LINEAR]
+        # self.lambda_l1_sched = (0.5*(1+torch.cos(torch.linspace(0, torch.pi, steps)))*(self.cfg.lambda_l1 - 1) + 1)  # [COSINE]
+        # self.lambda_l1_sched = self.inverse_exponential_schedule(self.cfg.lambda_l1, 1, steps) # inverse exp
+
+    def inverse_exponential_schedule(self, initial_value, final_value, num_steps):
+        decay_rate = -torch.log(torch.tensor(final_value / initial_value)) / num_steps
+        steps = torch.arange(num_steps, dtype=torch.float32)
+        schedule = initial_value * torch.exp(-decay_rate * steps)
+        return schedule
 
     def training_step(self, batch: Tensor) -> None:
         sat, map = batch
@@ -112,11 +114,13 @@ class Pix2Pix(BaseGAN):
             lr=self.cfg.lr_g,
             betas=(b1, b2),
             weight_decay=self.cfg.gen_wd,
+            eps=1e-8,
         )
         opt_d = torch.optim.Adam(
             self.discriminator.parameters(),
             lr=self.cfg.lr_d,
             betas=(b1, b2),
             weight_decay=self.cfg.disc_wd,
+            eps=1e-8,
         )
         return [opt_g, opt_d], []

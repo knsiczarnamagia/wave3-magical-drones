@@ -9,11 +9,11 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb
 from omegaconf import DictConfig
 
+
 class CycleGAN2(BaseGAN):
     def __init__(self, cfg: DictConfig):
         super().__init__()
         self.cfg = cfg.gan
-        self.save_hyperparameters(cfg)
         self.automatic_optimization = False
         self.gen_sat = Generator(cfg.generator)
         self.gen_map = Generator(cfg.generator)
@@ -30,14 +30,16 @@ class CycleGAN2(BaseGAN):
         sat_fake = self.gen_sat(map)
         disc_sat_real = self.disc_sat(sat)
         disc_sat_fake = self.disc_sat(sat_fake.detach())
-        disc_sat_loss = (F.mse_loss(disc_sat_real, torch.ones_like(disc_sat_real)) +
-                        F.mse_loss(disc_sat_fake, torch.zeros_like(disc_sat_fake)))
+        disc_sat_loss = F.mse_loss(
+            disc_sat_real, torch.ones_like(disc_sat_real)
+        ) + F.mse_loss(disc_sat_fake, torch.zeros_like(disc_sat_fake))
 
         map_fake = self.gen_map(sat)
         disc_map_real = self.disc_map(map)
         disc_map_fake = self.disc_map(map_fake.detach())
-        disc_map_loss = (F.mse_loss(disc_map_real, torch.ones_like(disc_map_real)) +
-                        F.mse_loss(disc_map_fake, torch.zeros_like(disc_map_fake)))
+        disc_map_loss = F.mse_loss(
+            disc_map_real, torch.ones_like(disc_map_real)
+        ) + F.mse_loss(disc_map_fake, torch.zeros_like(disc_map_fake))
 
         disc_loss = (disc_sat_loss + disc_map_loss) / 2
         optim_disc.zero_grad()
@@ -49,15 +51,22 @@ class CycleGAN2(BaseGAN):
     def _train_generators(self, sat, map, sat_fake, map_fake, optim_gen):
         disc_sat_fake = self.disc_sat(sat_fake)
         disc_map_fake = self.disc_map(map_fake)
-        gen_loss = (F.mse_loss(disc_sat_fake, torch.ones_like(disc_sat_fake)) +
-                   F.mse_loss(disc_map_fake, torch.ones_like(disc_map_fake))) # adversarial GAN los
+        gen_loss = F.mse_loss(
+            disc_sat_fake, torch.ones_like(disc_sat_fake)
+        ) + F.mse_loss(
+            disc_map_fake, torch.ones_like(disc_map_fake)
+        )  # adversarial GAN los
 
         cycle_map = self.gen_map(sat_fake)
         cycle_sat = self.gen_sat(map_fake)
-        cycle_loss = (F.l1_loss(map, cycle_map) + F.l1_loss(sat, cycle_sat)) * self.cfg.lambda_cycle
+        cycle_loss = (
+            F.l1_loss(map, cycle_map) + F.l1_loss(sat, cycle_sat)
+        ) * self.cfg.lambda_cycle
         gen_loss += cycle_loss
 
-        l1_loss = F.l1_loss(map_fake, map) + F.l1_loss(sat_fake, sat) # pixel-wise L1 loss (from Pix2Pix)
+        l1_loss = F.l1_loss(map_fake, map) + F.l1_loss(
+            sat_fake, sat
+        )  # pixel-wise L1 loss (from Pix2Pix)
         gen_loss += l1_loss * self.cfg.lambda_l1
 
         optim_gen.zero_grad()
@@ -84,7 +93,7 @@ class CycleGAN2(BaseGAN):
         }
         if isinstance(self.logger, WandbLogger):
             wandb_images = {}
-            for name, img in images.items(): 
+            for name, img in images.items():
                 wandb_images[name] = wandb.Image(
                     img.to(device="cpu", dtype=torch.float32)
                 )
@@ -104,6 +113,6 @@ class CycleGAN2(BaseGAN):
             fused=True,
         )
         return [opt_g, opt_d], []
-    
+
     def on_validation_epoch_end(self):
         pass

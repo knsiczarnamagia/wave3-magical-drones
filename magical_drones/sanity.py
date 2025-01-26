@@ -1,11 +1,11 @@
 from magical_drones.datasets.magmap import MagMapV1
 from magical_drones.models.pix2pix2.gan import Pix2Pix2
+from magical_drones.models.cycle_gan.gan import CycleGAN
 from omegaconf import OmegaConf
-from PIL import Image
-from torchvision.utils import make_grid
-import torch
+import wandb
+import os
 
-trainer_cfg = OmegaConf.load('conf/trainer.yaml')
+trainer_cfg = OmegaConf.load("conf/trainer.yaml")
 model_cfg = OmegaConf.load("conf/models.yaml")
 data_cfg = OmegaConf.load("conf/data.yaml")
 
@@ -31,10 +31,9 @@ gan = Pix2Pix2(model_cfg)
 # print('disc out shape:', out.shape) # patches so different than img size
 
 gen = gan.generator
-print('sat in shape:', sat.shape)
+print("sat in shape:", sat.shape)
 out2 = gen(sat)
-print('gen out shape:', out2.shape)
-
+print("gen out shape:", out2.shape)
 
 
 ### test checkpoint loading ###
@@ -54,7 +53,6 @@ print('gen out shape:', out2.shape)
 # print(gan.optimizers())
 
 
-
 ### dataloader speed ###
 # from tqdm import tqdm
 # from time import time
@@ -70,21 +68,22 @@ print('gen out shape:', out2.shape)
 # print(f"TIME SPENT: {time()-start}")
 
 
-
 ### load checkpoint from W&B ###
-import wandb
-import os
+
 run = wandb.init(project="magical-drones")
 
 # "Run path" from W&B run overveiew panel
-artifact = run.use_artifact("szefek24/magical-drones/hdoulm7c", type="model") # its for "CycleGAN-eb993c73" run
-artifact_dir = artifact.download() # it will download to current dir (does it take path argument?)
+artifact = run.use_artifact(
+    "szefek24/magical-drones/hdoulm7c", type="model"
+)  # its for "CycleGAN-eb993c73" run
+artifact_dir = (
+    artifact.download()
+)  # it will download to current dir (does it take path argument?)
 
 # The downloaded directory will contain any checkpoints that were saved
 # Replace "my-model-epoch.ckpt" with the name of the saved checkpoint file
 checkpoint_path = os.path.join(artifact_dir, "my-model-00.ckpt")
 
 # Load the model
-from magical_drones.models.cycle_gan.gan import CycleGAN
 model = CycleGAN.load_from_checkpoint(checkpoint_path)
 model.eval()
