@@ -1,0 +1,11 @@
+mode: train
+use_TF32: true
+# run_name: null
+trainer: # passed directly to Lightning Trainer
+  max_epochs: 100
+  precision: "bf16-mixed"
+  # accumulate_grad_batches: 4 can't use grad_accumulation with manual optimizers
+  # val_check_interval: 1000
+  limit_val_batches: 0.5 # shorter validation
+  benchmark: true
+  # checkpoint_interval: 500

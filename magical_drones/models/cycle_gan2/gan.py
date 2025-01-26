@@ -10,7 +10,7 @@ import wandb
 from omegaconf import DictConfig
 
 
-class CycleGAN(BaseGAN):
+class CycleGAN2(BaseGAN):
     def __init__(self, cfg: DictConfig):
         super().__init__()
         self.cfg = cfg.gan
@@ -53,7 +53,9 @@ class CycleGAN(BaseGAN):
         disc_map_fake = self.disc_map(map_fake)
         gen_loss = F.mse_loss(
             disc_sat_fake, torch.ones_like(disc_sat_fake)
-        ) + F.mse_loss(disc_map_fake, torch.ones_like(disc_map_fake))
+        ) + F.mse_loss(
+            disc_map_fake, torch.ones_like(disc_map_fake)
+        )  # adversarial GAN los
 
         cycle_map = self.gen_map(sat_fake)
         cycle_sat = self.gen_sat(map_fake)
@@ -61,6 +63,11 @@ class CycleGAN(BaseGAN):
             F.l1_loss(map, cycle_map) + F.l1_loss(sat, cycle_sat)
         ) * self.cfg.lambda_cycle
         gen_loss += cycle_loss
+
+        l1_loss = F.l1_loss(map_fake, map) + F.l1_loss(
+            sat_fake, sat
+        )  # pixel-wise L1 loss (from Pix2Pix)
+        gen_loss += l1_loss * self.cfg.lambda_l1
 
         optim_gen.zero_grad()
         gen_loss.backward()
