@@ -1,0 +1,23 @@
+discriminator:
+  channels: 3
+  num_features: 96
+  num_residuals: 8
+  depth: 4
+  noise_std: 0.00
+  dropout: 0.5
+generator:
+  channels: 3
+  num_features: 64
+  num_residuals: 12
+  depth: 4
+gan:
+  lambda_cycle: 10
+  # lambda_identity: 5.0 # typically 0.5 * lambda_cycle
+  lambda_l1: 10
+  lambda_adv: 1
+  lr_g: 2.0e-4
+  lr_d: 5.0e-5
+  b1: 0.5
+  b2: 0.999
+  gen_wd: 0.0
+  disc_wd: 0.0
