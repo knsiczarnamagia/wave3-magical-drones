@@ -67,7 +67,7 @@ The data was gathered through the following steps:
     - Create a new grid containing only cells over terrain with more than 5% building layer coverage.
 4. Download the satellite images using the [GUGiK Data Downloader plugin for QGIS](https://plugins.qgis.org/plugins/pobieracz_danych_gugik/).
 5. Import the satellite images from the directory chosen in the previous step to the program.
-6. Use the second script from [our repository](https://github.com/knsiczarnamagia/wave3-magical-drones) at `./datagen/step2.py` to crop the vector and satellite files according to grid cells and export them to the ./sat and ./map directories with appropriate file names.
+6. Use the second script from [our repository](https://github.com/knsiczarnamagia/wave3-magical-drones) at `./datagen/step2.py` to crop the vector and satellite files according to grid cells and export them to the `./sat` and `./map` directories with appropriate file names.
 
 ## Additional Information
 
