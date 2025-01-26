@@ -38,7 +38,7 @@ class MagMapDataSet(Dataset):
             )  # transform performed only on sat image (color jitter etc.)
             sat_image, map_image = self.transform(sat_image, map_image)
         except Exception as e:
-            raise ValueError(f"Error loading or transforming image at index {idx}: {e}")
+            raise ValueError(f"Error processing sample {idx}: {e}")
         return sat_image, map_image
 
 
@@ -46,21 +46,38 @@ class MagMapV1(LightningDataModule):
     def __init__(self, cfg: DictConfig):
         super().__init__()
         self.cfg = cfg
+        self.data_link = cfg.data_link
+        self.data_files = cfg.get("data_files")
+        self.data_dir = cfg.get("data_dir", "./data")
+        self.split_for_upload = cfg.get("split_for_upload", [80, 10, 10, "%"])
+        self.batch_size = cfg.batch_size
+        self.num_workers = cfg.get("num_workers", 4)
+        self.prefetch_factor = cfg.get("prefetch_factor", 2)
+
         self.train_transform = make_tfms(**cfg.train_transforms)
         self.valid_transform = make_tfms(**cfg.valid_transforms)
         self.test_transform = make_tfms(**cfg.test_transforms)
-        self.data_link = cfg.data_link
-        self.batch_size = cfg.batch_size
-        self.num_workers = cfg.num_workers
-        self.prefetch_factor = cfg.prefetch_factor
 
     def setup(self, stage: str = None):
-        data_dict = load_dataset(self.data_link)
+        data_dict = load_dataset(
+            self.data_link,
+            data_files=self.data_files,
+            cache_dir=self.data_dir,
+        )
         data = data_dict["train"]
 
+        split_train, split_val, split_test, unit = self.split_for_upload
         total_len = len(data)
-        train_len = int(0.8 * total_len)
-        val_len = int(0.1 * total_len)
+
+        if unit == "%":
+            train_len = int(split_train / 100 * total_len)
+            val_len = int(split_val / 100 * total_len)
+        else:
+            train_len = split_train
+            val_len = split_val
+
+        test_len = total_len - train_len - val_len
+        assert train_len + val_len + test_len == total_len, "Invalid split"
 
         self.train_dataset = MagMapDataSet(
             data.select(range(0, train_len)),
@@ -84,7 +101,6 @@ class MagMapV1(LightningDataModule):
             prefetch_factor=self.prefetch_factor,
             shuffle=True,
             pin_memory=True,
-            # persistent_workers=True,  # Keep workers alive
         )
 
     def val_dataloader(self):
@@ -118,8 +134,8 @@ def make_tfms(
     tfms = [
         v2.ToImage(),
         v2.Resize(size=size),
-        v2.ToDtype(torch.float32, scale=True),  # scale to 0,1
-        v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),  # scale to -1,+1
+        v2.ToDtype(torch.float32, scale=True),
+        v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
     ]
     if degrees or translate or scale or shear:
         tfms.append(

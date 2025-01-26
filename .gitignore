@@ -170,3 +170,4 @@ checkpoints/
 wandb/
 outputs/
 profiler/
+data/
