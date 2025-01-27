@@ -1,5 +1,5 @@
 data_link: "czarna-magia/mag-map"
-batch_size: 32
+batch_size: 16
 num_workers: 12
 prefetch_factor: 4
 train_transforms:

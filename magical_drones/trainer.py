@@ -29,7 +29,7 @@ class TrainerHandler:
         self.run_name = self.trainer_cfg.get(
             "run_name", f"{model_class.__name__}-{str(uuid4())[:8]}"
         )
-        self.model = CycleGAN2.load_from_checkpoint("checkpoints/model.ckpt", cfg=self.model_cfg)
+        self.model = CycleGAN2.load_from_checkpoint("magical_drones/checkpoints/model.ckpt", cfg=self.model_cfg)
         self.datamodule = datamodule_class(data_cfg)
 
         torch.set_float32_matmul_precision(
