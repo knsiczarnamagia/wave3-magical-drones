@@ -3,13 +3,13 @@ batch_size: 32
 num_workers: 12
 prefetch_factor: 4
 train_transforms:
-  size: 128
+  size: 256
   degrees: 10
   translate: [0.05, 0.05]
   scale: [0.9, 1.2]
   shear: [-5, 5, -5, 5]
   channel_shuffle: false
 valid_transforms:
-  size: 128
+  size: 256
 test_transforms:
-  size: 128
+  size: 256
