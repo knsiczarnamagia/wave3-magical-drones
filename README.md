@@ -1,8 +1,19 @@
-# magical-drones
+# WAVE3 Magical Drones
 
 Repository with training & data generation code. For demo look here: [link](https://github.com/knsiczarnamagia/wave3-magical-drones-app)
 
-#TODO: purpose of this repo 
+## About The Project
+This projects was developed by a team of five Computer Science students as part of a session-long initiative, affectionately referred to as a "project wave," 🌊, under the guidance of the "Czarna Magia" Artificial Intelligence Student Society.
+
+Our primary objective was to create a model capable of converting satellite images into detailed maps. To achieve this, we built our own paired dataset by scraping satellite imaginery and maps from Polish cities, which served as a foundation for training our model. Throughout the project, we investigated several model architectures, including CycleGAN, pix2pix, and GeoGAN. Ultimately, we selected and implemented a CycleGAN-based model, now deployed as a fully functional web application with both frontend and backend integration. 
+
+![Our objective](concept.png)
+
+For model development, we utilized technologies such as Python, PyTorch, PyTorch Lightning, Lightning AI Studio, and Hugging Face. The application was built and deployed using Spring, Java, Postman, and Docker.
+
+We had a privilege of being mentored by Dominik Mielczarek, an experienced ML Engineer from OPEGIEKA, whose expertise and guidance were invaluable to the success of this project.
+
+The final application is publicly accessible—feel free to try it out here: [Magical Drones Vercel App](https://magicaldrones.vercel.app/).
 
 ## How to use this repo?
 
