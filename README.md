@@ -39,12 +39,12 @@ make train
 2. Linting & formatting - Ruff formatter in GH actions (code must be formatted to be merged to main)
 3. CI/CD workflows - version checking, formatter, linter
 4. Dependencies & project versioning - Poetry
-5. Makefile - make check, make format, make train, make install, make test
-6. .gitignore - exists
+5. Makefile - `make check`, `make format`, `make train`, `make install`, `make test`
+6. `.gitignore` - exists
 7. Modular structure - OOP, Pytorch Lightning
 8. High quality README - judge for yourself
-9. Link to demo - TODO: [link here]
-10. Notes and research references - GAN notes (TODO: private?)
+9. Link to demo - [Magical Drones Vercel App](https://magicaldrones.vercel.app/)
+10. Notes and research references - [GAN notes repo](https://github.com/knsiczarnamagia/wave3-gan-notes)
 11. Usage of `pathlib.Path` - used
 12. Datacard - [present in HF dataset](https://huggingface.co/datasets/czarna-magia/mag-map)
 
