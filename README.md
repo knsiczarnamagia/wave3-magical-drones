@@ -13,7 +13,7 @@ For model development, we utilized technologies such as Python, PyTorch, PyTorch
 
 We had a privilege of being mentored by Dominik Mielczarek, an experienced ML Engineer from OPEGIEKA, whose expertise and guidance were invaluable to the success of this project.
 
-The final application is publicly accessible—feel free to try it out here: [Magical Drones Vercel App](https://magicaldrones.vercel.app/).
+The final application is publicly accessible — feel free to try it out here: [Magical Drones Vercel App](https://magicaldrones.vercel.app/).
 
 ## How to use this repo?
 
