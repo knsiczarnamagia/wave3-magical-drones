@@ -23,7 +23,7 @@ git clone https://github.com/knsiczarnamagia/wave3-magical-drones.git
 cd wave3-magical-drones
 ```
 
-2. Install dependencies (you have to have make and poetry installed)
+2. Install dependencies (you have to have `make` and `poetry` installed)
 ```bash
 make install 
 ```
