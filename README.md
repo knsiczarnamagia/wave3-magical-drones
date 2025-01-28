@@ -5,7 +5,7 @@ Repository with training & data generation code. For demo look here: [link](http
 ## About The Project
 This projects was developed by a team of five Computer Science students as part of a session-long initiative, affectionately referred to as a "project wave," 🌊, under the guidance of the "Czarna Magia" Artificial Intelligence Student Society.
 
-Our primary objective was to create a model capable of converting satellite images into detailed maps. To achieve this, we built our own paired dataset by scraping satellite imaginery and maps from Polish cities, which served as a foundation for training our model. Throughout the project, we investigated several model architectures, including CycleGAN, pix2pix, and GeoGAN. Ultimately, we selected and implemented a CycleGAN-based model, now deployed as a fully functional web application with both frontend and backend integration. 
+Our primary objective was to create a model capable of converting satellite images into detailed maps. To achieve this, we built our own paired dataset by gathering satellite imagery and maps of Polish cities through [QGIS](https://www.qgis.org/) software, which served as a foundation for training our model. Throughout the project, we investigated several model architectures, including CycleGAN, pix2pix, and GeoGAN. Ultimately, we selected and implemented a CycleGAN-based model, now deployed as a fully functional web application with both frontend and backend integration. 
 
 ![Our objective](concept.png)
 
