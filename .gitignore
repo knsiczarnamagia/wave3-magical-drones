@@ -171,3 +171,4 @@ wandb/
 outputs/
 profiler/
 data/
+artifacts/
