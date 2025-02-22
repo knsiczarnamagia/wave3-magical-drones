@@ -36,7 +36,7 @@ class Pix2Pix(BaseGAN):
         disc_loss = (disc_real_loss + disc_fake_loss) / 2
 
         optim_disc.zero_grad()
-        disc_loss.backward()
+        self.manual_backward(disc_loss)
         optim_disc.step()
 
         self.log("disc_loss", disc_loss.item())
@@ -56,7 +56,7 @@ class Pix2Pix(BaseGAN):
         gen_loss = gen_gan_loss + gen_l1_loss
 
         optim_gen.zero_grad()
-        gen_loss.backward()
+        self.manual_backward(gen_loss)
         optim_gen.step()
 
         self.log("gen_loss", gen_loss.item())

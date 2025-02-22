@@ -43,7 +43,7 @@ class CycleGAN(BaseGAN):
 
         disc_loss = (disc_sat_loss + disc_map_loss) / 2
         optim_disc.zero_grad()
-        disc_loss.backward()
+        self.manual_backward(disc_loss)
         optim_disc.step()
         self.log("disc_loss", disc_loss.item())
         return sat_fake, map_fake
@@ -63,7 +63,7 @@ class CycleGAN(BaseGAN):
         gen_loss += cycle_loss
 
         optim_gen.zero_grad()
-        gen_loss.backward()
+        self.manual_backward(gen_loss)
         optim_gen.step()
         self.log("gen_loss", gen_loss.item())
 
